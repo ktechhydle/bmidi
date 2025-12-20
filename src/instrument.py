@@ -38,7 +38,7 @@ class Instrument:
                     })
 
     def handler(self, scene):
-        t = scene.frame_current / scene.render.fps
+        t = (scene.frame_current - 1) / scene.render.fps
         n = self.original_position
 
         for data in self.events:
