@@ -45,7 +45,7 @@ class Instrument:
             dt = t - data["start"]
 
             if 0 <= dt < data["duration"]:
-                n += math.sin(dt * 30) * data["velocity"] + (self.reach / 2)
+                n += math.sin(math.pi * dt / data["duration"]) * data["velocity"] + self.reach
 
         exec(f"self.object.{self.object_property} = n")
 

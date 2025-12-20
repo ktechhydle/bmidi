@@ -13,11 +13,12 @@ def initialize():
 
 initialize()
 
+import math
 from src.instrument import Instrument, append_instrument
 import bpy
 
-high_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_High", "rotation_euler.x", 45, note=77)
-low_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_Low", "rotation_euler.x", 45, note=76)
+high_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_High", "rotation_euler.x", math.radians(45), note=77)
+low_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_Low", "rotation_euler.x", math.radians(45), note=76)
 
 bpy.app.handlers.frame_change_pre.clear()
 
