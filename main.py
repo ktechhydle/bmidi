@@ -7,18 +7,19 @@ def initialize():
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
 
-    import src.composition
-    import src.motion
-    import src.object
+    import src.instrument
 
-    importlib.reload(src.composition)
-    importlib.reload(src.motion)
-    importlib.reload(src.object)
+    importlib.reload(src.instrument)
 
 initialize()
 
-from src.composition import Composition
-from src.motion import MotionPosition, MotionRotation, MotionX, MotionY, MotionZ
+from src.instrument import Instrument
+import bpy
 
-composition = Composition("Hammer", "/home/keller/mpsoftware/bmidi/tests/scale_down.mid", MotionRotation, MotionY, 35)
-composition.run()
+instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick", "rotation_euler.x", 45)
+
+if not hasattr(bpy, "_instruments"):
+    bpy._instruments = []
+
+if instrument not in bpy._instruments:
+    bpy._instruments.append(instrument)
