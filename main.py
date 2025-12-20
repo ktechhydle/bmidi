@@ -13,13 +13,13 @@ def initialize():
 
 initialize()
 
-from src.instrument import Instrument
+from src.instrument import Instrument, append_instrument
 import bpy
 
-instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick", "rotation_euler.x", 45)
+high_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_High", "rotation_euler.x", 45, note=77)
+low_instrument = Instrument("/home/keller/mpsoftware/bmidi/test.mid", "Stick_Low", "rotation_euler.x", 45, note=76)
 
-if not hasattr(bpy, "_instruments"):
-    bpy._instruments = []
+bpy.app.handlers.frame_change_pre.clear()
 
-if instrument not in bpy._instruments:
-    bpy._instruments.append(instrument)
+append_instrument(high_instrument)
+append_instrument(low_instrument)
