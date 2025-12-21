@@ -2,13 +2,22 @@ import mido
 import math
 import bpy
 
+def spring_step(pos, vel, target, stiffness, damping, dt):
+    force = (target - pos) * stiffness
+    vel += force * dt
+    vel *= damping
+    pos += vel * dt
+    return pos, vel
+
 class Instrument:
     def __init__(self, midi_file: str, object_name: str, object_property: str, reach: float, note: int | None = None):
         self.events = []
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property
         exec(f"self.original_position = self.object.{self.object_property}")
-        self.reach = reach
+        self.reach = reach / 10
+        self.pos = self.original_position
+        self.vel = 0.0
 
         midi = mido.MidiFile(midi_file)
         current_time = 0.0
@@ -38,16 +47,32 @@ class Instrument:
                     })
 
     def handler(self, scene):
-        t = (scene.frame_current - 1) / scene.render.fps
-        n = self.original_position
+        fps = scene.render.fps
+        dt = 1.0 / fps
+        t = scene.frame_current / fps
+
+        target = self.original_position
 
         for data in self.events:
-            dt = t - data["start"]
+            note_t = t - data["start"]
 
-            if 0 <= dt < data["duration"]:
-                n += math.sin(math.pi * dt / data["duration"]) * data["velocity"] + self.reach
+            if 0 <= note_t < data["duration"]:
+                target = (self.original_position + self.reach) * data["velocity"]
 
-        exec(f"self.object.{self.object_property} = n")
+        stiffness = 80.0    # snap
+        damping   = 0.75    # bounce
+
+        self.pos, self.vel = spring_step(
+            self.pos,
+            self.vel,
+            target,
+            stiffness,
+            damping,
+            dt
+        )
+
+        exec(f"self.object.{self.object_property} = self.pos")
+
 
 def append_instrument(instrument: Instrument):
     if not hasattr(bpy, "_instruments"):
