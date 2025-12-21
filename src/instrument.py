@@ -50,17 +50,16 @@ class Instrument:
         fps = scene.render.fps
         dt = 1.0 / fps
         t = scene.frame_current / fps
-
         target = self.original_position
 
         for data in self.events:
             note_t = t - data["start"]
 
-            if 0 <= note_t < data["duration"]:
-                target = (self.original_position + self.reach) * data["velocity"]
+            if abs(note_t) < dt:
+                target += self.reach * data["velocity"] * target
 
-        stiffness = 80.0    # snap
-        damping   = 0.75    # bounce
+        stiffness = 140.0
+        damping   = 0.75
 
         self.pos, self.vel = spring_step(
             self.pos,
