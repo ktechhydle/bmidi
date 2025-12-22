@@ -56,10 +56,10 @@ class Instrument:
             note_t = t - data["start"]
 
             if abs(note_t) < dt:
-                target += self.reach * data["velocity"] * target
+                target += self.reach * data["velocity"]
 
         stiffness = 140.0
-        damping   = 0.75
+        damping   = 0.6
 
         self.pos, self.vel = spring_step(
             self.pos,
@@ -69,6 +69,8 @@ class Instrument:
             damping,
             dt
         )
+
+        # setattr(self.object, self.object_property, self.pos)
 
         exec(f"self.object.{self.object_property} = self.pos")
 
