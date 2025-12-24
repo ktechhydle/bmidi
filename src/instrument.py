@@ -10,12 +10,21 @@ def spring_step(pos, vel, target, stiffness, damping, dt):
     return pos, vel
 
 class Instrument:
-    def __init__(self, midi_file: str, object_name: str, object_property: str, reach: float, note: int | None = None):
+    def __init__(
+        self,
+        midi_file: str,
+        object_name: str,
+        object_property: str,
+        reach: float,
+        note: int | None = None,
+        damping: float = 0.6
+    ):
         self.events = []
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property
         exec(f"self.original_position = self.object.{self.object_property}")
         self.reach = reach / 10
+        self.damping = damping
         self.pos = self.original_position
         self.vel = 0.0
 
@@ -59,7 +68,7 @@ class Instrument:
                 target += self.reach * data["velocity"]
 
         stiffness = 140.0
-        damping   = 0.6
+        damping   = self.damping
 
         self.pos, self.vel = spring_step(
             self.pos,

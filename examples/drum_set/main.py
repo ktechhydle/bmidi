@@ -19,7 +19,7 @@ from src.instrument import Instrument, append_instrument
 offset = 12 # the midi track is offset by 12 due to the way it was created
 
 cowbell_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Cowbell_Stick", "rotation_euler.x", 90, note=68 - offset)
-cowbell = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Cowbell", "rotation_euler.x", 3, note=68 - offset)
+cowbell = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Cowbell", "rotation_euler.x", 0.5, note=68 - offset, damping=0.8)
 tom_drum_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Tom_Stick", "rotation_euler.x", 90, note=62 - offset)
 tom_drum = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Tom", "location.z", -3, note=62 - offset)
 snare_drum_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Snare_Stick", "rotation_euler.x", 90, note=50 - offset)
