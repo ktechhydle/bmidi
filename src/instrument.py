@@ -4,6 +4,33 @@ import bpy
 
 
 class Instrument:
+    """
+    Represents a single "instrument" that can be controlled by a specific pitch or the whole midi file
+
+    `object_name`: the object to control
+    `object_property`: the blender object property to control, like `rotation_euler.x` or `location.y`
+    `initial_position`: where the object starts and rests at during notes
+    `pullback_position`: how far the object moves from `initial_position` before springing back to hit the note
+    `overshoot_amount`: how far past the object moves from `initial_position` during a note hit
+    `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
+    `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
+
+    ## Example:
+
+    ```python
+    snare_drum_hammer = Instrument(
+        "track.mid", # midi file
+        "Snare_Stick", # object to control
+        "rotation_euler.x", # property to control
+        math.radians(90), # initial value
+        math.radians(35), # pullback amount
+        overshoot_amount=math.radians(3), # overshoot amount
+        note=25, # what pitch controls the object
+        affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
+    )
+    snare_drum_hammer.generate_keyframes() # generate the keyframes
+    ```
+    """
     def __init__(
         self,
         midi_file: str,
