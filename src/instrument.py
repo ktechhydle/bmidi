@@ -13,7 +13,7 @@ class Instrument:
         pullback_position: float,
         overshoot_amount: float = 0,
         note: int | None = None,
-        affects_object: tuple[str, str] | None = None,
+        affected_object: tuple[str, str, float] | None = None,
     ):
         self.events = []
         self.object = bpy.data.objects[object_name]
@@ -22,8 +22,12 @@ class Instrument:
         self.pullback_position = pullback_position
         self.overshoot_amount = overshoot_amount
 
-        if affects_object is not None:
-            self.affects_object = (bpy.data.objects[affects_object[0]], affects_object[1])
+        if affected_object is not None:
+            self.affected_object = bpy.data.objects[affected_object[0]]
+            self.affected_object_property = affected_object[1]
+            self.affected_object_movement_amount = affected_object[2]
+
+            self.affected_object.animation_data_clear()
 
         midi = mido.MidiFile(midi_file)
         current_time = 0.0
@@ -51,6 +55,8 @@ class Instrument:
                         "duration": current_time - start_time,
                         "velocity": velocity,
                     })
+
+        self.object.animation_data_clear()
 
     def generate_keyframes(self):
         fps = bpy.context.scene.render.fps
@@ -86,9 +92,30 @@ class Instrument:
                 frame=start_frame
             )
 
-            if hasattr(self, "affects_object"):
-                # TODO: make affected object feel impact from hit
-                pass
+            # the affected object moves on note hits
+            if hasattr(self, "affected_object"):
+                affected_prop = self.affected_object_property
+                affected_keyframe_prop = affected_prop.split(".")[0]
+                prop_root, prop_axis = self.affected_object_property.split(".")
+                og_position = getattr(getattr(self.affected_object, prop_root), prop_axis)
+
+                exec(f"self.affected_object.{self.affected_object_property} = og_position")
+                self.affected_object.keyframe_insert(
+                    data_path=affected_keyframe_prop,
+                    frame=start_frame - duration
+                )
+
+                exec(f"self.affected_object.{self.affected_object_property} = og_position + self.affected_object_movement_amount")
+                self.affected_object.keyframe_insert(
+                    data_path=affected_keyframe_prop,
+                    frame=start_frame
+                )
+
+                exec(f"self.affected_object.{self.affected_object_property} = og_position")
+                self.affected_object.keyframe_insert(
+                    data_path=affected_keyframe_prop,
+                    frame=end_frame
+                )
 
             exec(f"obj.{prop} = self.initial_position - (self.overshoot_amount * 0.75)")
             obj.keyframe_insert(

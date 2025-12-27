@@ -14,27 +14,55 @@ def initialize():
 initialize()
 
 import bpy
-from src.instrument import Instrument, append_instrument
+import math
+from src.instrument import Instrument
 
 offset = 12 # the midi track is offset by 12 due to the way it was created
 
-cowbell_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Cowbell_Stick", "rotation_euler.x", 90, note=68 - offset)
-cowbell = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Cowbell", "rotation_euler.x", 0.5, note=68 - offset, damping=0.8)
-tom_drum_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Tom_Stick", "rotation_euler.x", 90, note=62 - offset)
-tom_drum = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Tom", "location.z", -3, note=62 - offset)
-snare_drum_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Snare_Stick", "rotation_euler.x", 90, note=50 - offset)
-snare_drum = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Snare", "location.z", -3, note=50 - offset)
-kick_drum_hammer = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Kick_Stick", "rotation_euler.x", 90, note=47 - offset)
-kick_drum = Instrument("/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid", "Kick", "location.x", -3, note=47 - offset)
+cowbell_hammer = Instrument(
+    "/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid",
+    "Cowbell_Stick",
+    "rotation_euler.x",
+    math.radians(90),
+    math.radians(35),
+    overshoot_amount=math.radians(3),
+    note=68 - offset,
+    affected_object=("Cowbell", "rotation_euler.x", math.radians(1.5))
+)
+tom_drum_hammer = Instrument(
+    "/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid",
+    "Tom_Stick",
+    "rotation_euler.x",
+    math.radians(90),
+    math.radians(35),
+    overshoot_amount=math.radians(3),
+    note=62 - offset,
+    affected_object=("Tom", "location.z", -0.1)
+)
+snare_drum_hammer = Instrument(
+    "/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid",
+    "Snare_Stick",
+    "rotation_euler.x",
+    math.radians(90),
+    math.radians(35),
+    overshoot_amount=math.radians(3),
+    note=50 - offset,
+    affected_object=("Snare", "location.z", -0.1)
+)
+kick_drum_hammer = Instrument(
+    "/home/keller/mpsoftware/bmidi/examples/drum_set/track.mid",
+    "Kick_Stick",
+    "rotation_euler.x",
+    math.radians(180),
+    math.radians(125),
+    overshoot_amount=math.radians(3),
+    note=47 - offset,
+    affected_object=("Kick", "location.x", -0.1)
+)
 
 bpy.context.scene.frame_set(-1)
-bpy.app.handlers.frame_change_pre.clear()
 
-append_instrument(cowbell_hammer)
-append_instrument(cowbell)
-append_instrument(tom_drum_hammer)
-append_instrument(tom_drum)
-append_instrument(snare_drum_hammer)
-append_instrument(snare_drum)
-append_instrument(kick_drum_hammer)
-append_instrument(kick_drum)
+cowbell_hammer.generate_keyframes()
+tom_drum_hammer.generate_keyframes()
+snare_drum_hammer.generate_keyframes()
+kick_drum_hammer.generate_keyframes()
