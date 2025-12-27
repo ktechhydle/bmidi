@@ -2,12 +2,6 @@ import mido
 import math
 import bpy
 
-def spring_step(pos, vel, target, stiffness, damping, dt):
-    force = (target - pos) * stiffness
-    vel += force * dt
-    vel *= damping
-    pos += vel * dt
-    return pos, vel
 
 class Instrument:
     def __init__(
@@ -15,18 +9,21 @@ class Instrument:
         midi_file: str,
         object_name: str,
         object_property: str,
-        reach: float,
+        initial_position: float,
+        pullback_position: float,
+        overshoot_amount: float = 0,
         note: int | None = None,
-        damping: float = 0.6
+        affects_object: tuple[str, str] | None = None,
     ):
         self.events = []
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property
-        exec(f"self.original_position = self.object.{self.object_property}")
-        self.reach = reach / 10
-        self.damping = damping
-        self.pos = self.original_position
-        self.vel = 0.0
+        self.initial_position = initial_position
+        self.pullback_position = pullback_position
+        self.overshoot_amount = overshoot_amount
+
+        if affects_object is not None:
+            self.affects_object = (bpy.data.objects[affects_object[0]], affects_object[1])
 
         midi = mido.MidiFile(midi_file)
         current_time = 0.0
@@ -55,43 +52,53 @@ class Instrument:
                         "velocity": velocity,
                     })
 
-    def handler(self, scene):
-        fps = scene.render.fps
-        dt = 1.0 / fps
-        t = scene.frame_current / fps
-        target = self.original_position
+    def generate_keyframes(self):
+        fps = bpy.context.scene.render.fps
+        obj = self.object
+        obj.animation_data_clear()
+        prop = self.object_property
+        keyframe_prop = prop.split(".")[0]
 
-        for data in self.events:
-            note_t = t - data["start"]
+        for e in self.events:
+            start_frame = int(e["start"] * fps)
+            end_frame = int((e["start"] + e["duration"]) * fps)
+            duration = int(e["duration"] * fps)
+            note_velocity = e["velocity"]
 
-            if abs(note_t) < dt:
-                target += self.reach * data["velocity"]
+            # start
+            exec(f"obj.{prop} = self.initial_position")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=start_frame - (duration * 1.75)
+            )
 
-        stiffness = 140.0
-        damping   = self.damping
+            # pullback
+            exec(f"obj.{prop} = self.pullback_position")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=start_frame - duration
+            )
 
-        self.pos, self.vel = spring_step(
-            self.pos,
-            self.vel,
-            target,
-            stiffness,
-            damping,
-            dt
-        )
+            # hit
+            exec(f"obj.{prop} = self.initial_position + self.overshoot_amount")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=start_frame
+            )
 
-        # setattr(self.object, self.object_property, self.pos)
+            if hasattr(self, "affects_object"):
+                # TODO: make affected object feel impact from hit
+                pass
 
-        exec(f"self.object.{self.object_property} = self.pos")
+            exec(f"obj.{prop} = self.initial_position - (self.overshoot_amount * 0.75)")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=end_frame - (duration * 0.1)
+            )
 
-
-def append_instrument(instrument: Instrument):
-    if not hasattr(bpy, "_instruments"):
-        bpy._instruments = []
-
-    if instrument not in bpy._instruments:
-        bpy._instruments.append(instrument)
-
-    instrument_handler = lambda scene: instrument.handler(scene)
-
-    if instrument_handler not in bpy.app.handlers.frame_change_pre:
-        bpy.app.handlers.frame_change_pre.append(instrument_handler)
+            # return to original position
+            exec(f"obj.{prop} = self.initial_position")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=end_frame
+            )
