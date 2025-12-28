@@ -71,9 +71,9 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         default=0
     )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
-    affected_object_name: bpy.props.StringProperty(name="Affected Object")
+    affected_object_name: bpy.props.StringProperty(name="Object")
     affected_object_property: bpy.props.EnumProperty(
-        name="Object Property",
+        name="Property",
         items=[
             ("location.x", "Location X", ""),
             ("location.y", "Location Y", ""),
@@ -157,9 +157,14 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.midi_file,
                     item.object_name,
                     item.object_property,
-                    math.radians(item.initial_position) if needs_radians else item.intial_position,
                     math.radians(item.pullback_position) if needs_radians else item.pullback_position,
+                    initial_position=math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position),
                     overshoot_amount=math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount,
+                    affected_object=(
+                        item.affected_object_name,
+                        item.affected_object_property,
+                        math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
+                    ) if item.affects_object else None,
                 )
                 composition.generate_keyframes()
 
@@ -221,12 +226,12 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 if item.use_note:
                     layout.prop(item, "note")
 
-                layout.prop(item, "affects_object")
+            layout.prop(item, "affects_object", text="Affects Objects" if item.type == "composition" else "Affects Object")
 
-                if item.affects_object:
-                    layout.prop(item, "affected_object_name")
-                    layout.prop(item, "affected_object_property")
-                    layout.prop(item, "affected_amount")
+            if item.affects_object:
+                layout.prop(item, "affected_object_name", text="Object Prefix" if item.type == "composition" else "Object")
+                layout.prop(item, "affected_object_property")
+                layout.prop(item, "affected_amount")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes")
