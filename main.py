@@ -66,6 +66,24 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         max=127,
         default=-1
     )
+    affects_object: bpy.props.BoolProperty(name="Affects Object")
+    affected_object_name: bpy.props.StringProperty(name="Affected Object")
+    affected_object_property: bpy.props.EnumProperty(
+        name="Object Property",
+        items=[
+            ("location.x", "Location X", ""),
+            ("location.y", "Location Y", ""),
+            ("location.z", "Location Z", ""),
+            ("rotation_euler.x", "Rotation X", ""),
+            ("rotation_euler.y", "Rotation Y", ""),
+            ("rotation_euler.z", "Rotation Z", ""),
+            ("scale.x", "Scale X", ""),
+            ("scale.y", "Scale Y", ""),
+            ("scale.z", "Scale Z", ""),
+        ]
+    )
+    affected_initial_position: bpy.props.FloatProperty(name="Initial")
+    affected_amount: bpy.props.FloatProperty(name="Amount")
 
 class BMIDI_UL_items(bpy.types.UIList):
     def draw_item(
@@ -111,7 +129,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
     def execute(self, context):
         for item in context.scene.bmidi_items:
-            needs_radians = True if item.object_property in ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z") else False
+            properties = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
+            needs_radians = True if item.object_property in properties else False
 
             if item.type == "instrument":
                 instrument = Instrument(
@@ -122,6 +141,11 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     math.radians(item.pullback_position) if needs_radians else item.pullback_position,
                     overshoot_amount=math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount,
                     note=item.note if item.note > -1 else None,
+                    affected_object=(
+                        item.affected_object_name,
+                        item.affected_object_property,
+                        math.radians(item.affected_amount) if item.affected_object_property in properties else item.affected_amount)
+                    if item.affects_object else None,
                 )
                 instrument.generate_keyframes()
             elif item.type == "composition":
@@ -174,6 +198,12 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             # only show the note property if type is instrument
             if item.type == "instrument":
                 layout.prop(item, "note")
+                layout.prop(item, "affects_object")
+
+                if item.affects_object:
+                    layout.prop(item, "affected_object_name")
+                    layout.prop(item, "affected_object_property")
+                    layout.prop(item, "affected_amount")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes")
