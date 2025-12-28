@@ -32,6 +32,17 @@ from src.composition import Composition
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
 LOCATION_PROPERTIES = ("location.x", "location.y", "location.z")
 SCALE_PROPERTIES = ("scale.x", "scale.y", "scale.z")
+OBJECT_PROPERTIES = [
+    ("location.x", "Location X", ""),
+    ("location.y", "Location Y", ""),
+    ("location.z", "Location Z", ""),
+    ("rotation_euler.x", "Rotation X", ""),
+    ("rotation_euler.y", "Rotation Y", ""),
+    ("rotation_euler.z", "Rotation Z", ""),
+    ("scale.x", "Scale X", ""),
+    ("scale.y", "Scale Y", ""),
+    ("scale.z", "Scale Z", ""),
+]
 
 class BMIDI_Item(bpy.types.PropertyGroup):
     type: bpy.props.EnumProperty(
@@ -48,17 +59,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     object_name: bpy.props.StringProperty(name="Object")
     object_property: bpy.props.EnumProperty(
         name="Property",
-        items=[
-            ("location.x", "Location X", ""),
-            ("location.y", "Location Y", ""),
-            ("location.z", "Location Z", ""),
-            ("rotation_euler.x", "Rotation X", ""),
-            ("rotation_euler.y", "Rotation Y", ""),
-            ("rotation_euler.z", "Rotation Z", ""),
-            ("scale.x", "Scale X", ""),
-            ("scale.y", "Scale Y", ""),
-            ("scale.z", "Scale Z", ""),
-        ]
+        items=OBJECT_PROPERTIES
     )
     initial_position: bpy.props.FloatProperty(name="Initial")
     pullback_position: bpy.props.FloatProperty(name="Pullback")
@@ -74,17 +75,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     affected_object_name: bpy.props.StringProperty(name="Object")
     affected_object_property: bpy.props.EnumProperty(
         name="Property",
-        items=[
-            ("location.x", "Location X", ""),
-            ("location.y", "Location Y", ""),
-            ("location.z", "Location Z", ""),
-            ("rotation_euler.x", "Rotation X", ""),
-            ("rotation_euler.y", "Rotation Y", ""),
-            ("rotation_euler.z", "Rotation Z", ""),
-            ("scale.x", "Scale X", ""),
-            ("scale.y", "Scale Y", ""),
-            ("scale.z", "Scale Z", ""),
-        ]
+        items=OBJECT_PROPERTIES
     )
     affected_amount: bpy.props.FloatProperty(name="Amount")
 
@@ -135,21 +126,25 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
         for item in context.scene.bmidi_items:
             needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
             needs_position = True if item.object_property in LOCATION_PROPERTIES else False
+            pullback_position = math.radians(item.pullback_position) if needs_radians else item.pullback_position
+            initial_position = math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position)
+            overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
+            affected_object = (
+                item.affected_object_name,
+                item.affected_object_property,
+                math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
+            ) if item.affects_object else None
 
             if item.type == "instrument":
                 instrument = Instrument(
                     item.midi_file,
                     item.object_name,
                     item.object_property,
-                    math.radians(item.pullback_position) if needs_radians else item.pullback_position,
-                    initial_position=math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position),
-                    overshoot_amount=math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount,
+                    pullback_position,
+                    initial_position=initial_position,
+                    overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
-                    affected_object=(
-                        item.affected_object_name,
-                        item.affected_object_property,
-                        math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
-                    ) if item.affects_object else None,
+                    affected_object=affected_object,
                 )
                 instrument.generate_keyframes()
             elif item.type == "composition":
@@ -157,14 +152,10 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.midi_file,
                     item.object_name,
                     item.object_property,
-                    math.radians(item.pullback_position) if needs_radians else item.pullback_position,
-                    initial_position=math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position),
-                    overshoot_amount=math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount,
-                    affected_object=(
-                        item.affected_object_name,
-                        item.affected_object_property,
-                        math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
-                    ) if item.affects_object else None,
+                    pullback_position,
+                    initial_position=initial_position,
+                    overshoot_amount=overshoot_amount,
+                    affected_object=affected_object,
                 )
                 composition.generate_keyframes()
 
