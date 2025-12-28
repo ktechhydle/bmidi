@@ -29,6 +29,10 @@ import math
 from src.instrument import Instrument
 from src.composition import Composition
 
+ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
+LOCATION_PROPERTIES = ("location.x", "location.y", "location.z")
+SCALE_PROPERTIES = ("scale.x", "scale.y", "scale.z")
+
 class BMIDI_Item(bpy.types.PropertyGroup):
     type: bpy.props.EnumProperty(
         name="Type",
@@ -37,7 +41,6 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("composition", "Composition", ""),
         ]
     )
-    name: bpy.props.StringProperty(name="Name", default="Instrument")
     midi_file: bpy.props.StringProperty(
         name="MIDI File",
         subtype="FILE_PATH"
@@ -60,11 +63,12 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     initial_position: bpy.props.FloatProperty(name="Initial")
     pullback_position: bpy.props.FloatProperty(name="Pullback")
     overshoot_amount: bpy.props.FloatProperty(name="Overshoot")
+    use_note: bpy.props.BoolProperty(name="Use Note")
     note: bpy.props.IntProperty(
         name="Note",
-        min=-1,
+        min=0,
         max=127,
-        default=-1
+        default=0
     )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Affected Object")
@@ -82,7 +86,6 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("scale.z", "Scale Z", ""),
         ]
     )
-    affected_initial_position: bpy.props.FloatProperty(name="Initial")
     affected_amount: bpy.props.FloatProperty(name="Amount")
 
 class BMIDI_UL_items(bpy.types.UIList):
@@ -90,7 +93,7 @@ class BMIDI_UL_items(bpy.types.UIList):
         self, context, layout, data, item, icon,
         active_data, active_propname, index
     ):
-        layout.prop(item, "name", text="", emboss=False, icon="SOUND")
+        layout.prop(item, "object_name", text="", emboss=False, icon="SOUND")
 
 class VIEW_3D_OT_add_item(bpy.types.Operator):
     """
@@ -100,8 +103,7 @@ class VIEW_3D_OT_add_item(bpy.types.Operator):
     bl_label = "Add Item"
 
     def execute(self, context):
-        inst = context.scene.bmidi_items.add()
-        inst.name = f"Item {len(context.scene.bmidi_items)}"
+        context.scene.bmidi_items.add()
         context.scene.bmidi_active_item = len(context.scene.bmidi_items) - 1
 
         return {'FINISHED'}
@@ -128,24 +130,26 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
     bl_label = "Generate Keyframes"
 
     def execute(self, context):
+        context.scene.frame_set(-1)
+
         for item in context.scene.bmidi_items:
-            properties = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
-            needs_radians = True if item.object_property in properties else False
+            needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
+            needs_position = True if item.object_property in LOCATION_PROPERTIES else False
 
             if item.type == "instrument":
                 instrument = Instrument(
                     item.midi_file,
                     item.object_name,
                     item.object_property,
-                    math.radians(item.initial_position) if needs_radians else item.intial_position,
                     math.radians(item.pullback_position) if needs_radians else item.pullback_position,
+                    initial_position=math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position),
                     overshoot_amount=math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount,
-                    note=item.note if item.note > -1 else None,
+                    note=item.note if item.use_note else None,
                     affected_object=(
                         item.affected_object_name,
                         item.affected_object_property,
-                        math.radians(item.affected_amount) if item.affected_object_property in properties else item.affected_amount)
-                    if item.affects_object else None,
+                        math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
+                    ) if item.affects_object else None,
                 )
                 instrument.generate_keyframes()
             elif item.type == "composition":
@@ -191,13 +195,32 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             layout.prop(item, "midi_file")
             layout.prop(item, "object_name", text="Object" if item.type == "instrument" else "Object Prefix") # if "composition" is selected change the label
             layout.prop(item, "object_property")
-            layout.prop(item, "initial_position")
-            layout.prop(item, "pullback_position")
-            layout.prop(item, "overshoot_amount")
 
-            # only show the note property if type is instrument
+            if item.object_property in LOCATION_PROPERTIES:
+                # only show the pullback amount (assume initial based on the object's current position)
+                layout.prop(item, "pullback_position", text="Pullback Amount")
+                layout.prop(item, "overshoot_amount", text="Overshoot Amount")
+            elif item.object_property in ROTATION_PROPERTIES:
+                layout.prop(item, "initial_position", text="Initial Rotation")
+                layout.prop(item, "pullback_position", text="Pullback Rotation")
+                layout.prop(item, "overshoot_amount", text="Overshoot Rotation")
+            elif item.object_property in SCALE_PROPERTIES:
+                layout.prop(item, "initial_position", text="Initial Scale")
+                layout.prop(item, "pullback_position", text="Pullback Scale")
+                layout.prop(item, "overshoot_amount", text="Overshoot Scale")
+            else:
+                layout.prop(item, "initial_position")
+                layout.prop(item, "pullback_position")
+                layout.prop(item, "overshoot_amount")
+
+            layout.separator()
+
             if item.type == "instrument":
-                layout.prop(item, "note")
+                layout.prop(item, "use_note")
+
+                if item.use_note:
+                    layout.prop(item, "note")
+
                 layout.prop(item, "affects_object")
 
                 if item.affects_object:
