@@ -125,9 +125,9 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
         for item in context.scene.bmidi_items:
             needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
-            needs_position = True if item.object_property in LOCATION_PROPERTIES else False
+
             pullback_position = math.radians(item.pullback_position) if needs_radians else item.pullback_position
-            initial_position = math.radians(item.initial_position) if needs_radians else (None if needs_position else item.initial_position)
+            initial_position = math.radians(item.initial_position) if needs_radians else item.initial_position
             overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
             affected_object = (
                 item.affected_object_name,
@@ -140,8 +140,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.midi_file,
                     item.object_name,
                     item.object_property,
+                    initial_position,
                     pullback_position,
-                    initial_position=initial_position,
                     overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
                     affected_object=affected_object,
@@ -152,8 +152,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.midi_file,
                     item.object_name,
                     item.object_property,
+                    initial_position,
                     pullback_position,
-                    initial_position=initial_position,
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
                 )
@@ -191,23 +191,9 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             layout.prop(item, "midi_file")
             layout.prop(item, "object_name", text="Object" if item.type == "instrument" else "Object Prefix") # if "composition" is selected change the label
             layout.prop(item, "object_property")
-
-            if item.object_property in LOCATION_PROPERTIES:
-                # only show the pullback amount (assume initial based on the object's current position)
-                layout.prop(item, "pullback_position", text="Pullback Amount")
-                layout.prop(item, "overshoot_amount", text="Overshoot Amount")
-            elif item.object_property in ROTATION_PROPERTIES:
-                layout.prop(item, "initial_position", text="Initial Rotation")
-                layout.prop(item, "pullback_position", text="Pullback Rotation")
-                layout.prop(item, "overshoot_amount", text="Overshoot Rotation")
-            elif item.object_property in SCALE_PROPERTIES:
-                layout.prop(item, "initial_position", text="Initial Scale")
-                layout.prop(item, "pullback_position", text="Pullback Scale")
-                layout.prop(item, "overshoot_amount", text="Overshoot Scale")
-            else:
-                layout.prop(item, "initial_position")
-                layout.prop(item, "pullback_position")
-                layout.prop(item, "overshoot_amount")
+            layout.prop(item, "initial_position")
+            layout.prop(item, "pullback_position")
+            layout.prop(item, "overshoot_amount")
 
             layout.separator()
 

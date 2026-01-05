@@ -12,22 +12,24 @@ class Composition:
         midi_file: str,
         object_prefix: str,
         object_property: str,
+        initial_position: float,
         pullback_position: float,
-        initial_position: float | None = None,
+        start_range: int = 0,
+        end_range: int = 128,
         overshoot_amount: float = 0,
         affected_object: tuple[str, str, float] | None = None,
     ):
         self.instruments: list[Instrument] = []
 
-        for i in range(0, 128):
+        for i in range(start_range, end_range):
             object_name = f"{object_prefix}_{i}"
 
             instrument = Instrument(
                 midi_file,
                 object_name,
                 object_property,
+                initial_position,
                 pullback_position,
-                initial_position=initial_position,
                 overshoot_amount=overshoot_amount,
                 note=i,
                 affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None

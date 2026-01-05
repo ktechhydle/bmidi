@@ -9,8 +9,8 @@ class Instrument:
 
     `object_name`: the object to control
     `object_property`: the blender object property to control, like `rotation_euler.x` or `location.y`
+    `initial_position`: where the object starts and rests at during notes
     `pullback_position`: how far the object moves from `initial_position` before springing back to hit the note
-    `initial_position`: where the object starts and rests at during notes (if left `None`, initial position is assumed as the objects current position)
     `overshoot_amount`: how far past the object moves from `initial_position` during a note hit
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
@@ -22,8 +22,8 @@ class Instrument:
         "track.mid", # midi file
         "Snare_Stick", # object to control
         "rotation_euler.x", # property to control
+        math.radians(90), # initial value
         math.radians(35), # pullback amount
-        initial_value=math.radians(90), # initial value
         overshoot_amount=math.radians(3), # overshoot amount
         note=25, # what pitch controls the object
         affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
@@ -36,8 +36,8 @@ class Instrument:
         midi_file: str,
         object_name: str,
         object_property: str,
+        initial_position: float,
         pullback_position: float,
-        initial_position: float | None = None,
         overshoot_amount: float = 0,
         note: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
@@ -45,8 +45,8 @@ class Instrument:
         self.events = []
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property
-        self.initial_position = getattr(getattr(self.object, self.object_property.split(".")[0]), self.object_property.split(".")[1]) if initial_position is None else initial_position
-        self.pullback_position = self.initial_position + pullback_position if initial_position is None else pullback_position
+        self.initial_position = initial_position
+        self.pullback_position = pullback_position
         self.overshoot_amount = overshoot_amount
 
         if affected_object is not None:
