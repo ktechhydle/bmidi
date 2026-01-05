@@ -71,6 +71,18 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         max=127,
         default=0
     )
+    note_range_start: bpy.props.IntProperty(
+        name="Note Range Start",
+        min=0,
+        max=127,
+        default=0
+    )
+    note_range_end: bpy.props.IntProperty(
+        name="Note Range End",
+        min=0,
+        max=127,
+        default=127
+    )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Object")
     affected_object_property: bpy.props.EnumProperty(
@@ -154,6 +166,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_property,
                     initial_position,
                     pullback_position,
+                    start_range=item.note_range_start,
+                    end_range=item.note_range_end + 1,
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
                 )
@@ -194,6 +208,10 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             layout.prop(item, "initial_position")
             layout.prop(item, "pullback_position")
             layout.prop(item, "overshoot_amount")
+
+            if item.type == "composition":
+                layout.prop(item, "note_range_start")
+                layout.prop(item, "note_range_end")
 
             layout.separator()
 
