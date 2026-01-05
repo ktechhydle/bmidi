@@ -6,7 +6,7 @@
 
 `bmidi` is not currently available as a full Blender addon, so creating a clone of this repository is necessary for usage.
 
-1. Clone The Repo
+### 1. Clone The Repo
 
 Clone this repository into the desired folder with:
 
@@ -14,7 +14,7 @@ Clone this repository into the desired folder with:
 git clone https://github.com/ktechhydle/bmidi.git
 ```
 
-2. Install The Python Requirements
+### 2. Install The Python Requirements
 
 Find the Blender Python executable's path using `bpy.app.binary_path` in the console, then input the following into a new terminal (located in this repositories root):
 
@@ -34,7 +34,7 @@ Then upgrading it with:
 '<your blender python path>' -m pip install --upgrade pip
 ```
 
-3. Run `main.py`
+### 3. Run `main.py`
 
 Create a new Blender project inside the root of this repository, and open the `main.py` file inside the "Script" tab. Run the file with `Alt-P` or use the run button located right next to the file name, and you're done!
 
