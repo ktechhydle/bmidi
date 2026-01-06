@@ -93,9 +93,9 @@ class Instrument:
         keyframe_prop = prop.split(".")[0]
 
         for e in self.events:
-            start_frame = int(e["start"] * fps)
-            end_frame = int((e["start"] + e["duration"]) * fps)
-            duration = int(e["duration"] * fps)
+            start_frame = e["start"] * fps
+            end_frame = (e["start"] + e["duration"]) * fps
+            duration = e["duration"] * fps
             pullback_scale = 1 + (1 - e["velocity"]) * 1.5
 
             # start
