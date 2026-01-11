@@ -11,6 +11,7 @@ def initialize():
     import src.composition
 
     importlib.reload(src.instrument)
+    importlib.reload(src.composition)
 
 initialize()
 
@@ -82,6 +83,12 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         min=0,
         max=127,
         default=127
+    )
+    channel: bpy.props.IntProperty(
+        name="Channel",
+        min=1,
+        max=16,
+        default=1
     )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Object")
@@ -156,6 +163,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     pullback_position,
                     overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
+                    channel=item.channel - 1,
                     affected_object=affected_object,
                 )
                 instrument.generate_keyframes()
@@ -167,9 +175,10 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     initial_position,
                     pullback_position,
                     start_range=item.note_range_start,
-                    end_range=item.note_range_end + 1,
+                    end_range=item.note_range_end,
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
+                    channel=item.channel - 1,
                 )
                 composition.generate_keyframes()
 
@@ -212,6 +221,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             if item.type == "composition":
                 layout.prop(item, "note_range_start")
                 layout.prop(item, "note_range_end")
+                layout.prop(item, "channel")
 
             layout.separator()
 
@@ -220,6 +230,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
                 if item.use_note:
                     layout.prop(item, "note")
+                    layout.prop(item, "channel")
 
             layout.prop(item, "affects_object", text="Affects Objects" if item.type == "composition" else "Affects Object")
 

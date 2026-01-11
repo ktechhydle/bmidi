@@ -13,6 +13,7 @@ class Instrument:
     `pullback_position`: how far the object moves from `initial_position` before springing back to hit the note
     `overshoot_amount`: how far past the object moves from `initial_position` during a note hit
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
+    `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
     `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
 
     ## Example:
@@ -20,12 +21,13 @@ class Instrument:
     ```python
     snare_drum_hammer = Instrument(
         "track.mid", # midi file
-        "Snare_Stick", # object to control
+        "Snare_Hammer", # object to control
         "rotation_euler.x", # property to control
         math.radians(90), # initial value
         math.radians(35), # pullback amount
         overshoot_amount=math.radians(3), # overshoot amount
         note=25, # what pitch controls the object
+        channel=9, # what channel controls the object
         affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
     )
     snare_drum_hammer.generate_keyframes() # generate the keyframes
@@ -40,6 +42,7 @@ class Instrument:
         pullback_position: float,
         overshoot_amount: float = 0,
         note: int | None = None,
+        channel: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
     ):
         self.events = []
@@ -67,14 +70,21 @@ class Instrument:
                 if note is not None and msg.note != note:
                     continue
 
-                active_notes[msg.note] = ( current_time, msg.velocity / 127.0 )
+                if channel is not None and msg.channel != channel:
+                    continue
+
+                active_notes[(msg.note, msg.channel)] = ( current_time, msg.velocity / 127.0 )
 
             elif msg.type in ("note_off", "note_on") and msg.velocity == 0:
                 if note is not None and msg.note != note:
                     continue
 
-                if msg.note in active_notes:
-                    start_time, velocity = active_notes.pop(msg.note)
+                if channel is not None and msg.channel != channel:
+                    continue
+
+                key = (msg.note, msg.channel)
+                if key in active_notes:
+                    start_time, velocity = active_notes.pop(key)
 
                     self.events.append({
                         "note": msg.note,
