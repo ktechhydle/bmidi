@@ -179,7 +179,7 @@ class HammerInstrument(Instrument):
                 exec(f"self.affected_object.{self.affected_object_property} = og_position")
                 self.affected_object.keyframe_insert(
                     data_path=affected_keyframe_prop,
-                    frame=start_frame - duration
+                    frame=start_frame - 1
                 )
 
                 exec(f"self.affected_object.{self.affected_object_property} = og_position + self.affected_object_movement_amount")
