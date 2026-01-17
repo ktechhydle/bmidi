@@ -27,7 +27,7 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import Instrument
+from src.instrument import HammerInstrument, MovementInstrument
 from src.composition import Composition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -49,7 +49,8 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     type: bpy.props.EnumProperty(
         name="Type",
         items=[
-            ("instrument", "Instrument", ""),
+            ("hammer_instrument", "Hammer Instrument", ""),
+            ("movement_instrument", "Movement Instrument", ""),
             ("composition", "Composition", ""),
         ]
     )
@@ -154,8 +155,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
             ) if item.affects_object else None
 
-            if item.type == "instrument":
-                instrument = Instrument(
+            if item.type == "hammer_instrument":
+                instrument = HammerInstrument(
                     item.midi_file,
                     item.object_name,
                     item.object_property,
@@ -165,6 +166,17 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     note=item.note if item.use_note else None,
                     channel=item.channel - 1,
                     affected_object=affected_object,
+                )
+                instrument.generate_keyframes()
+            elif item.type == "movement_instrument":
+                instrument = MovementInstrument(
+                    item.midi_file,
+                    item.object_name,
+                    item.object_property,
+                    initial_position,
+                    pullback_position,
+                    note=item.note if item.use_note else None,
+                    channel=item.channel - 1,
                 )
                 instrument.generate_keyframes()
             elif item.type == "composition":
@@ -212,11 +224,13 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             item = scene.bmidi_items[scene.bmidi_active_item]
             layout.prop(item, "type")
             layout.prop(item, "midi_file")
-            layout.prop(item, "object_name", text="Object" if item.type == "instrument" else "Object Prefix") # if "composition" is selected change the label
+            layout.prop(item, "object_name", text="Object" if item.type in ("hammer_instrument", "movement_instrument") else "Object Prefix") # if "composition" is selected change the label
             layout.prop(item, "object_property")
             layout.prop(item, "initial_position")
-            layout.prop(item, "pullback_position")
-            layout.prop(item, "overshoot_amount")
+            layout.prop(item, "pullback_position", text="Final" if item.type == "movement_instrument" else "Pullback")
+
+            if item.type != "movement_instrument":
+                layout.prop(item, "overshoot_amount")
 
             if item.type == "composition":
                 layout.prop(item, "note_range_start")
@@ -225,19 +239,20 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
             layout.separator()
 
-            if item.type == "instrument":
+            if item.type != "composition":
                 layout.prop(item, "use_note")
 
                 if item.use_note:
                     layout.prop(item, "note")
                     layout.prop(item, "channel")
 
-            layout.prop(item, "affects_object", text="Affects Objects" if item.type == "composition" else "Affects Object")
+            if item.type != "movement_instrument":
+                layout.prop(item, "affects_object", text="Affects Objects" if item.type == "composition" else "Affects Object")
 
-            if item.affects_object:
-                layout.prop(item, "affected_object_name", text="Object Prefix" if item.type == "composition" else "Object")
-                layout.prop(item, "affected_object_property")
-                layout.prop(item, "affected_amount")
+                if item.affects_object:
+                    layout.prop(item, "affected_object_name", text="Object Prefix" if item.type == "composition" else "Object")
+                    layout.prop(item, "affected_object_property")
+                    layout.prop(item, "affected_amount")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes")

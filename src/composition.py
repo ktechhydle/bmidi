@@ -1,5 +1,5 @@
 import bpy
-from src.instrument import Instrument
+from src.instrument import HammerInstrument
 
 class Composition:
     """
@@ -20,12 +20,12 @@ class Composition:
         affected_object: tuple[str, str, float] | None = None,
         channel: int | None = None,
     ):
-        self.instruments: list[Instrument] = []
+        self.instruments: list[HammerInstrument] = []
 
         for i in range(start_range, end_range):
             object_name = f"{object_prefix}_{i}"
 
-            instrument = Instrument(
+            instrument = HammerInstrument(
                 midi_file,
                 object_name,
                 object_property,
