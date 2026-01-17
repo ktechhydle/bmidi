@@ -27,7 +27,7 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import HammerInstrument, MovementInstrument
+from src.instrument import HammerInstrument, MovementInstrument, get_midi_channel_ranges
 from src.composition import Composition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -253,6 +253,25 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                     layout.prop(item, "affected_object_name", text="Object Prefix" if item.type == "composition" else "Object")
                     layout.prop(item, "affected_object_property")
                     layout.prop(item, "affected_amount")
+
+        if scene.bmidi_items:
+            layout.separator()
+            box = layout.box()
+            box.label(text="MIDI Information", icon="INFO")
+
+            midi_path = scene.bmidi_items[scene.bmidi_active_item].midi_file
+
+            if midi_path:
+                channel_ranges = get_midi_channel_ranges(midi_path)
+
+                if channel_ranges:
+                    for ch in sorted(channel_ranges):
+                        n, z = channel_ranges[ch]
+                        box.label(text=f"Channel {ch}: Notes {n}-{z}")
+                else:
+                    box.label(text="Error parsing midi file", icon="ERROR")
+            else:
+                box.label(text="No midi file selected")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes")
