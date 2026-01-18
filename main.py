@@ -187,7 +187,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     initial_position,
                     pullback_position,
                     start_range=item.note_range_start,
-                    end_range=item.note_range_end,
+                    end_range=item.note_range_end + 1, # 0 - 128
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
                     channel=item.channel - 1,
