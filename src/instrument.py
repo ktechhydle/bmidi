@@ -221,7 +221,7 @@ class MovementInstrument(Instrument):
     ## Example:
 
     ```python
-    snare_drum_hammer = MovementInstrument(
+    trumpet_horn = MovementInstrument(
         "track.mid", # midi file
         "Trumpet_Horn", # object to control
         "location.x", # property to control
@@ -230,7 +230,7 @@ class MovementInstrument(Instrument):
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
     )
-    snare_drum_hammer.generate_keyframes() # generate the keyframes
+    trumpet_horn.generate_keyframes() # generate the keyframes
     ```
     """
     def __init__(
@@ -263,13 +263,12 @@ class MovementInstrument(Instrument):
             start_frame = e["start"] * fps
             end_frame = (e["start"] + e["duration"]) * fps
             duration = e["duration"] * fps
-            pullback_scale = 1 + (1 - e["velocity"]) * 1.5
 
             # start
             exec(f"obj.{prop} = self.initial_position")
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=start_frame - (duration * pullback_scale)
+                frame=start_frame - 1
             )
 
             # note played
@@ -279,9 +278,16 @@ class MovementInstrument(Instrument):
                 frame=start_frame
             )
 
-            # return to original position
-            exec(f"obj.{prop} = self.initial_position")
+            # hold final position until note ends
+            exec(f"obj.{prop} = self.final_position")
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=end_frame
+            )
+
+            # return to original after note ends
+            exec(f"obj.{prop} = self.initial_position")
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=end_frame + 1
             )
