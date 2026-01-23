@@ -56,10 +56,6 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("movement_composition", "Movement Composition", ""),
         ]
     )
-    midi_file: bpy.props.StringProperty(
-        name="MIDI File",
-        subtype="FILE_PATH"
-    )
     object_name: bpy.props.StringProperty(name="Object")
     object_property: bpy.props.EnumProperty(
         name="Property",
@@ -144,6 +140,11 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
     def execute(self, context):
         context.scene.frame_set(-1)
+        midi_file = context.scene.bmidi_midi_file
+
+        if not midi_file:
+            self.report({'ERROR'}, "No MIDI file selected")
+            return {'CANCELLED'}
 
         for item in context.scene.bmidi_items:
             needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
@@ -159,7 +160,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
             if item.type == "hammer_instrument":
                 instrument = HammerInstrument(
-                    item.midi_file,
+                    midi_file,
                     item.object_name,
                     item.object_property,
                     initial_position,
@@ -172,7 +173,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 instrument.generate_keyframes()
             elif item.type == "movement_instrument":
                 instrument = MovementInstrument(
-                    item.midi_file,
+                    midi_file,
                     item.object_name,
                     item.object_property,
                     initial_position,
@@ -183,7 +184,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 instrument.generate_keyframes()
             elif item.type == "hammer_composition":
                 composition = HammerComposition(
-                    item.midi_file,
+                    midi_file,
                     item.object_name,
                     item.object_property,
                     initial_position,
@@ -197,7 +198,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 composition.generate_keyframes()
             elif item.type == "movement_composition":
                 composition = MovementComposition(
-                    item.midi_file,
+                    midi_file,
                     item.object_name,
                     item.object_property,
                     initial_position,
@@ -219,6 +220,26 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        box = layout.box()
+        box.prop(scene, "bmidi_midi_file")
+
+        if scene.bmidi_midi_file:
+            midi_path = scene.bmidi_midi_file
+
+            layout.separator()
+            box.label(text="MIDI Information", icon="INFO")
+
+            if midi_path:
+                channel_ranges = get_midi_channel_ranges(midi_path)
+
+                if channel_ranges:
+                    for ch in sorted(channel_ranges):
+                        n, z = channel_ranges[ch]
+                        box.label(text=f"Channel {ch}: Notes {n}-{z}")
+                else:
+                    box.label(text="Error parsing midi file", icon="ERROR")
+        else:
+            box.label(text="No midi file selected")
 
         row = layout.row()
         row.template_list(
@@ -268,27 +289,8 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                     layout.prop(item, "affected_object_property")
                     layout.prop(item, "affected_amount")
 
-        if scene.bmidi_items:
-            layout.separator()
-            box = layout.box()
-            box.label(text="MIDI Information", icon="INFO")
-
-            midi_path = scene.bmidi_items[scene.bmidi_active_item].midi_file
-
-            if midi_path:
-                channel_ranges = get_midi_channel_ranges(midi_path)
-
-                if channel_ranges:
-                    for ch in sorted(channel_ranges):
-                        n, z = channel_ranges[ch]
-                        box.label(text=f"Channel {ch}: Notes {n}-{z}")
-                else:
-                    box.label(text="Error parsing midi file", icon="ERROR")
-            else:
-                box.label(text="No midi file selected")
-
         layout.separator()
-        layout.operator("bmidi.generate_keyframes")
+        layout.operator("bmidi.generate_keyframes", icon="MODIFIER")
 
 def register():
     bpy.utils.register_class(BMIDI_Item)
@@ -298,6 +300,10 @@ def register():
         type=BMIDI_Item
     )
     bpy.types.Scene.bmidi_active_item = bpy.props.IntProperty()
+    bpy.types.Scene.bmidi_midi_file = bpy.props.StringProperty(
+        name="MIDI File",
+        subtype="FILE_PATH",
+    )
 
     bpy.utils.register_class(VIEW_3D_PT_bmidi_panel)
     bpy.utils.register_class(VIEW_3D_OT_add_item)
