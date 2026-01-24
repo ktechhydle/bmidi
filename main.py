@@ -259,7 +259,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             item = scene.bmidi_items[scene.bmidi_active_item]
             layout.prop(item, "type")
             layout.prop(item, "midi_file")
-            layout.prop(item, "object_name", text="Object" if item.type in COMPOSITION_TYPES else "Object Prefix") # if compositions is selected change the label
+            layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object") # if compositions is selected change the label
             layout.prop(item, "object_property")
             layout.prop(item, "initial_position")
             layout.prop(item, "pullback_position", text="Final" if item.type == "movement_instrument" or item.type == "movement_composition" else "Pullback")
