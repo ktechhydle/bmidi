@@ -10,6 +10,7 @@ class Composition:
         start_range: int = 0,
         end_range: int = 127,
         channel: int | None = None,
+        track: str | None = None,
     ):
         pass
 
@@ -34,6 +35,7 @@ class HammerComposition(Composition):
         overshoot_amount: float = 0,
         affected_object: tuple[str, str, float] | None = None,
         channel: int | None = None,
+        track: str | None = None,
     ):
         self.instruments: list[HammerInstrument] = []
 
@@ -49,6 +51,7 @@ class HammerComposition(Composition):
                 overshoot_amount=overshoot_amount,
                 note=i,
                 channel=channel,
+                track=track,
                 affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
             )
             self.instruments.append(instrument)
@@ -73,6 +76,7 @@ class MovementComposition(Composition):
         start_range: int = 0,
         end_range: int = 127,
         channel: int | None = None,
+        track: str | None = None,
     ):
         self.instruments: list[MovementInstrument] = []
 
@@ -87,6 +91,7 @@ class MovementComposition(Composition):
                 final_position,
                 note=i,
                 channel=channel,
+                track=track,
             )
             self.instruments.append(instrument)
 

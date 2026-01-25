@@ -27,7 +27,7 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import HammerInstrument, MovementInstrument, get_midi_channel_ranges
+from src.instrument import HammerInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges, get_midi_tracks, get_track_items
 from src.composition import HammerComposition, MovementComposition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -83,11 +83,13 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         max=127,
         default=127
     )
-    channel: bpy.props.IntProperty(
+    channel: bpy.props.EnumProperty(
         name="Channel",
-        min=1,
-        max=16,
-        default=1
+        items=get_channel_items,
+    )
+    track: bpy.props.EnumProperty(
+        name="Track",
+        items=get_track_items,
     )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Object")
@@ -157,6 +159,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 item.affected_object_property,
                 math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
             ) if item.affects_object else None
+            channel = int(item.channel) - 1
 
             if item.type == "hammer_instrument":
                 instrument = HammerInstrument(
@@ -167,7 +170,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     pullback_position,
                     overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
-                    channel=item.channel - 1,
+                    channel=channel,
+                    track=item.track,
                     affected_object=affected_object,
                 )
                 instrument.generate_keyframes()
@@ -179,7 +183,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     initial_position,
                     pullback_position,
                     note=item.note if item.use_note else None,
-                    channel=item.channel - 1,
+                    channel=channel,
+                    track=item.track,
                 )
                 instrument.generate_keyframes()
             elif item.type == "hammer_composition":
@@ -193,7 +198,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     end_range=item.note_range_end + 1, # 0 - 128
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
-                    channel=item.channel - 1,
+                    channel=channel,
+                    track=item.track,
                 )
                 composition.generate_keyframes()
             elif item.type == "movement_composition":
@@ -205,7 +211,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     pullback_position,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
-                    channel=item.channel - 1,
+                    channel=channel,
+                    track=item.track,
                 )
                 composition.generate_keyframes()
 
@@ -270,7 +277,6 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             if item.type in COMPOSITION_TYPES:
                 layout.prop(item, "note_range_start")
                 layout.prop(item, "note_range_end")
-                layout.prop(item, "channel")
 
             layout.separator()
 
@@ -279,7 +285,6 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
                 if item.use_note:
                     layout.prop(item, "note")
-                    layout.prop(item, "channel")
 
             if item.type != "movement_instrument":
                 layout.prop(item, "affects_object", text="Affects Objects" if item.type in COMPOSITION_TYPES else "Affects Object")
@@ -288,6 +293,14 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                     layout.prop(item, "affected_object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object")
                     layout.prop(item, "affected_object_property")
                     layout.prop(item, "affected_amount")
+
+            if scene.bmidi_midi_file:
+                midi_path = scene.bmidi_midi_file
+                layout.separator()
+                layout.prop(item, "channel")
+
+                if midi_path:
+                    layout.prop(item, "track")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes", icon="MODIFIER")
