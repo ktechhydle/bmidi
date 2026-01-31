@@ -111,9 +111,7 @@ class BMIDI_UL_items(bpy.types.UIList):
         row.prop(item, "enabled", text="")
 
 class VIEW_3D_OT_add_item(bpy.types.Operator):
-    """
-    Adds a new item
-    """
+    """Adds a new item"""
     bl_idname = "bmidi_items.add_item"
     bl_label = "Add Item"
 
@@ -124,9 +122,7 @@ class VIEW_3D_OT_add_item(bpy.types.Operator):
         return {'FINISHED'}
 
 class VIEW_3D_OT_remove_item(bpy.types.Operator):
-    """
-    Removes the selected item
-    """
+    """Removes the selected item"""
     bl_idname = "bmidi_items.remove_item"
     bl_label = "Remove Item"
 
@@ -134,6 +130,36 @@ class VIEW_3D_OT_remove_item(bpy.types.Operator):
         idx = context.scene.bmidi_active_item
         context.scene.bmidi_items.remove(idx)
         context.scene.bmidi_active_item = max(0, idx - 1)
+
+        return {'FINISHED'}
+
+class VIEW_3D_OT_duplicate_item(bpy.types.Operator):
+    """Duplicates the selected item"""
+    bl_idname = "bmidi_items.duplicate_item"
+    bl_label = "Duplicate Item"
+
+    def execute(self, context):
+        items = context.scene.bmidi_items
+        idx = context.scene.bmidi_active_item
+
+        if idx < 0 or idx >= len(items):
+            return {'CANCELLED'}
+
+        src = items[idx]
+
+        # create new item
+        items.add()
+        dst = items[-1]
+
+        # copy all RNA properties
+        for prop in src.bl_rna.properties:
+            if prop.identifier == "rna_type":
+                continue
+            setattr(dst, prop.identifier, getattr(src, prop.identifier))
+
+        # move it right after the original
+        items.move(len(items) - 1, idx + 1)
+        context.scene.bmidi_active_item = idx + 1
 
         return {'FINISHED'}
 
@@ -264,6 +290,8 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
         col = row.column(align=True)
         col.operator("bmidi_items.add_item", icon="ADD", text="")
         col.operator("bmidi_items.remove_item", icon="REMOVE", text="")
+        col.separator()
+        col.operator("bmidi_items.duplicate_item", icon="DUPLICATE", text="")
 
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
@@ -319,6 +347,7 @@ def register():
     bpy.utils.register_class(VIEW_3D_PT_bmidi_panel)
     bpy.utils.register_class(VIEW_3D_OT_add_item)
     bpy.utils.register_class(VIEW_3D_OT_remove_item)
+    bpy.utils.register_class(VIEW_3D_OT_duplicate_item)
     bpy.utils.register_class(VIEW_3D_OT_generate_keyframes)
 
 def unregister():
@@ -326,6 +355,7 @@ def unregister():
     bpy.utils.unregister_class(VIEW_3D_PT_bmidi_panel)
     bpy.utils.unregister_class(VIEW_3D_OT_add_item)
     bpy.utils.unregister_class(VIEW_3D_OT_remove_item)
+    bpy.utils.unregister_class(VIEW_3D_OT_duplicate_item)
     bpy.utils.unregister_class(VIEW_3D_OT_generate_keyframes)
 
 if __name__ == "__main__":
