@@ -157,6 +157,8 @@ class VIEW_3D_OT_duplicate_item(bpy.types.Operator):
                 continue
             setattr(dst, prop.identifier, getattr(src, prop.identifier))
 
+        dst.object_name = f"{src.object_name} (COPY)"
+
         # move it right after the original
         items.move(len(items) - 1, idx + 1)
         context.scene.bmidi_active_item = idx + 1
