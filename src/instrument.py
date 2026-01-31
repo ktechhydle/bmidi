@@ -150,7 +150,6 @@ class HammerInstrument(Instrument):
 
         for e in self.events():
             start_frame = e["start"] * fps
-            end_frame = (e["start"] + e["duration"]) * fps
             duration = 0.08 * fps # ~80ms time
             pullback_scale = 1 + (1 - e["velocity"]) * 1.5
 
