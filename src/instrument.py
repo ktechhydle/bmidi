@@ -151,7 +151,7 @@ class HammerInstrument(Instrument):
         for e in self.events():
             start_frame = e["start"] * fps
             end_frame = (e["start"] + e["duration"]) * fps
-            duration = e["duration"] * fps
+            duration = 0.08 * fps # ~80ms time
             pullback_scale = 1 + (1 - e["velocity"]) * 1.5
 
             # start
@@ -197,20 +197,20 @@ class HammerInstrument(Instrument):
                 exec(f"self.affected_object.{self.affected_object_property} = og_position")
                 self.affected_object.keyframe_insert(
                     data_path=affected_keyframe_prop,
-                    frame=end_frame
+                    frame=start_frame + duration
                 )
 
             exec(f"obj.{prop} = self.initial_position - (self.overshoot_amount * 0.75)")
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=end_frame - (duration * pullback_scale)
+                frame=start_frame + duration
             )
 
             # return to original position
             exec(f"obj.{prop} = self.initial_position")
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=end_frame
+                frame=start_frame + (duration * pullback_scale)
             )
 
 class MovementInstrument(Instrument):
