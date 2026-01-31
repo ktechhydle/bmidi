@@ -37,35 +37,9 @@ def get_channel_items(self, context):
 
     return []
 
-def get_midi_tracks(midi_path: str) -> list[str]:
-    tracks = []
-
-    try:
-        mid = mido.MidiFile(midi_path)
-    except Exception:
-        return []
-
-    for track in mid.tracks:
-        for msg in track:
-            if msg.type in ("instrument_name", "track_name"):
-                tracks.append(msg.name)
-
-    return tracks
-
-def get_track_items(self, context):
-    scene = context.scene
-
-    if scene.bmidi_midi_file:
-        tracks = get_midi_tracks(scene.bmidi_midi_file)
-
-        if tracks:
-            return [(t, t, "") for t in tracks]
-
-    return []
-
 
 class Instrument:
-    def __init__(self, midi_file: str, note: int | None = None, channel: int | None = None, track: str | None = None):
+    def __init__(self, midi_file: str, note: int | None = None, channel: int | None = None):
         self._events = []
 
         midi = mido.MidiFile(midi_file)
@@ -148,10 +122,9 @@ class HammerInstrument(Instrument):
         overshoot_amount: float = 0,
         note: int | None = None,
         channel: int | None = None,
-        track: str | None = None,
         affected_object: tuple[str, str, float] | None = None,
     ):
-        super().__init__(midi_file, note, channel, track)
+        super().__init__(midi_file, note, channel)
 
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property
@@ -275,9 +248,8 @@ class MovementInstrument(Instrument):
         final_position: float,
         note: int | None = None,
         channel: int | None = None,
-        track: str | None = None,
     ):
-        super().__init__(midi_file, note, channel, track)
+        super().__init__(midi_file, note, channel)
 
         self.object = bpy.data.objects[object_name]
         self.object_property = object_property

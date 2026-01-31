@@ -27,7 +27,7 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import HammerInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges, get_midi_tracks, get_track_items
+from src.instrument import HammerInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges
 from src.composition import HammerComposition, MovementComposition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -86,10 +86,6 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     channel: bpy.props.EnumProperty(
         name="Channel",
         items=get_channel_items,
-    )
-    track: bpy.props.EnumProperty(
-        name="Track",
-        items=get_track_items,
     )
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Object")
@@ -171,7 +167,6 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
                     channel=channel,
-                    track=item.track,
                     affected_object=affected_object,
                 )
                 instrument.generate_keyframes()
@@ -184,7 +179,6 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     pullback_position,
                     note=item.note if item.use_note else None,
                     channel=channel,
-                    track=item.track,
                 )
                 instrument.generate_keyframes()
             elif item.type == "hammer_composition":
@@ -199,7 +193,6 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     overshoot_amount=overshoot_amount,
                     affected_object=affected_object,
                     channel=channel,
-                    track=item.track,
                 )
                 composition.generate_keyframes()
             elif item.type == "movement_composition":
@@ -212,7 +205,6 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     channel=channel,
-                    track=item.track,
                 )
                 composition.generate_keyframes()
 
@@ -298,9 +290,6 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 midi_path = scene.bmidi_midi_file
                 layout.separator()
                 layout.prop(item, "channel")
-
-                if midi_path:
-                    layout.prop(item, "track")
 
         layout.separator()
         layout.operator("bmidi.generate_keyframes", icon="MODIFIER")
