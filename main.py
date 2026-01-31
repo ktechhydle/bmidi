@@ -47,6 +47,11 @@ OBJECT_PROPERTIES = [
 COMPOSITION_TYPES = ("hammer_composition", "movement_composition")
 
 class BMIDI_Item(bpy.types.PropertyGroup):
+    enabled: bpy.props.BoolProperty(
+        name="Enabled",
+        description="Generate keyframes for this item",
+        default=True
+    )
     type: bpy.props.EnumProperty(
         name="Type",
         items=[
@@ -100,7 +105,10 @@ class BMIDI_UL_items(bpy.types.UIList):
         self, context, layout, data, item, icon,
         active_data, active_propname, index
     ):
-        layout.prop(item, "object_name", text="", emboss=False, icon="SOUND")
+        row = layout.row(align=True)
+        row.prop(item, "object_name", text="", emboss=False, icon="SOUND")
+        row.prop(item, "type", text="", emboss=False)
+        row.prop(item, "enabled", text="")
 
 class VIEW_3D_OT_add_item(bpy.types.Operator):
     """
@@ -145,6 +153,9 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
             return {'CANCELLED'}
 
         for item in context.scene.bmidi_items:
+            if not item.enabled:
+                continue
+
             needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
 
             pullback_position = math.radians(item.pullback_position) if needs_radians else item.pullback_position
@@ -256,12 +267,10 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
-            layout.prop(item, "type")
-            layout.prop(item, "midi_file")
             layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object") # if compositions is selected change the label
             layout.prop(item, "object_property")
             layout.prop(item, "initial_position")
-            layout.prop(item, "pullback_position", text="Final" if item.type == "movement_instrument" or item.type == "movement_composition" else "Pullback")
+            layout.prop(item, "pullback_position", text="Final" if item.type in ("movement_instrument", "movement_composition") else "Pullback")
 
             if item.type not in ("movement_instrument", "movement_composition"):
                 layout.prop(item, "overshoot_amount")
