@@ -98,7 +98,10 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         name="Property",
         items=OBJECT_PROPERTIES
     )
-    affected_amount: bpy.props.FloatProperty(name="Amount")
+    affected_amount: bpy.props.FloatProperty(
+        name="Amount",
+        description="The amount that is added to the object property when the object is affected",
+    )
 
 class BMIDI_UL_items(bpy.types.UIList):
     def draw_item(
