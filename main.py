@@ -66,9 +66,8 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         name="Property",
         items=OBJECT_PROPERTIES
     )
-    initial_position: bpy.props.FloatProperty(name="Initial")
-    pullback_position: bpy.props.FloatProperty(name="Pullback")
-    overshoot_amount: bpy.props.FloatProperty(name="Overshoot")
+    pullback_amount: bpy.props.FloatProperty(name="Pullback Amount")
+    overshoot_amount: bpy.props.FloatProperty(name="Overshoot Amount")
     use_note: bpy.props.BoolProperty(name="Use Note")
     note: bpy.props.IntProperty(
         name="Note",
@@ -189,8 +188,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
             needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
 
-            pullback_position = math.radians(item.pullback_position) if needs_radians else item.pullback_position
-            initial_position = math.radians(item.initial_position) if needs_radians else item.initial_position
+            pullback_amount = math.radians(item.pullback_amount) if needs_radians else item.pullback_amount
             overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
             affected_object = (
                 item.affected_object_name,
@@ -204,8 +202,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     midi_file,
                     item.object_name,
                     item.object_property,
-                    initial_position,
-                    pullback_position,
+                    pullback_amount,
                     overshoot_amount=overshoot_amount,
                     note=item.note if item.use_note else None,
                     channel=channel,
@@ -217,8 +214,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     midi_file,
                     item.object_name,
                     item.object_property,
-                    initial_position,
-                    pullback_position,
+                    pullback_amount,
                     note=item.note if item.use_note else None,
                     channel=channel,
                 )
@@ -228,8 +224,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     midi_file,
                     item.object_name,
                     item.object_property,
-                    initial_position,
-                    pullback_position,
+                    pullback_amount,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     overshoot_amount=overshoot_amount,
@@ -242,8 +237,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     midi_file,
                     item.object_name,
                     item.object_property,
-                    initial_position,
-                    pullback_position,
+                    pullback_amount,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     channel=channel,
@@ -302,8 +296,11 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             item = scene.bmidi_items[scene.bmidi_active_item]
             layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object") # if compositions is selected change the label
             layout.prop(item, "object_property")
-            layout.prop(item, "initial_position")
-            layout.prop(item, "pullback_position", text="Final" if item.type in ("movement_instrument", "movement_composition") else "Pullback")
+
+            if item.type in ("movement_instrument", "movement_composition"):
+                layout.prop(item, "pullback_amount", text="Final Amount")
+            else:
+                layout.prop(item, "pullback_amount")
 
             if item.type not in ("movement_instrument", "movement_composition"):
                 layout.prop(item, "overshoot_amount")
