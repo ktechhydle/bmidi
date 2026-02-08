@@ -307,7 +307,6 @@ class MovementInstrument(Instrument):
             )
 
             # hold final position until note ends
-            set_prop(obj, prop, base + final)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_hold
