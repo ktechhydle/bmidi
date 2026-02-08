@@ -42,6 +42,15 @@ def get_base_position(object, prop):
 
     return getattr(getattr(object, prop_root), prop_axis)
 
+def get_prop(obj, prop_path: str):
+    root, attr = prop_path.split(".")
+    return getattr(getattr(obj, root), attr)
+
+def set_prop(obj, prop_path: str, value):
+    root, attr = prop_path.split(".")
+    container = getattr(obj, root)
+    setattr(container, attr, value)
+
 
 class Instrument:
     def __init__(self, midi_file: str, note: int | None = None, channel: int | None = None):
@@ -146,6 +155,8 @@ class HammerInstrument(Instrument):
         scene = bpy.context.scene
         fps = scene.render.fps
         obj = self.object
+        pullback = self.pullback_amount
+        overshoot = self.overshoot_amount
         prop = self.object_property
         keyframe_prop = prop.split(".")[0]
         base = get_base_position(obj, prop)
@@ -162,21 +173,21 @@ class HammerInstrument(Instrument):
             frame_end = start + (duration * velocity_scale)
 
             # start
-            exec(f"obj.{prop} = base")
+            set_prop(obj, prop, base)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_start
             )
 
             # pullback
-            exec(f"obj.{prop} = base + self.pullback_amount")
+            set_prop(obj, prop, base + pullback)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_pullback
             )
 
             # hit
-            exec(f"obj.{prop} = base + self.overshoot_amount")
+            set_prop(obj, prop, base + overshoot)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_hit
@@ -189,33 +200,33 @@ class HammerInstrument(Instrument):
                 prop_root, prop_axis = self.affected_object_property.split(".")
                 og_position = getattr(getattr(self.affected_object, prop_root), prop_axis)
 
-                exec(f"self.affected_object.{self.affected_object_property} = og_position")
+                set_prop(self.affected_object, self.affected_object_property, og_position)
                 self.affected_object.keyframe_insert(
                     data_path=affected_keyframe_prop,
                     frame=start - 1
                 )
 
-                exec(f"self.affected_object.{self.affected_object_property} = og_position + self.affected_object_movement_amount")
+                set_prop(self.affected_object, self.affected_object_property, og_position + self.affected_object_movement_amount)
                 self.affected_object.keyframe_insert(
                     data_path=affected_keyframe_prop,
                     frame=start
                 )
 
-                exec(f"self.affected_object.{self.affected_object_property} = og_position")
+                set_prop(self.affected_object, self.affected_object_property, og_position)
                 self.affected_object.keyframe_insert(
                     data_path=affected_keyframe_prop,
                     frame=start + duration
                 )
 
             # oscillate
-            exec(f"obj.{prop} = base - (self.overshoot_amount * 0.75)")
+            set_prop(obj, prop, base - (overshoot * 0.75))
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_oscillate
             )
 
             # end
-            exec(f"obj.{prop} = base")
+            set_prop(obj, prop, base)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_end
@@ -265,42 +276,141 @@ class MovementInstrument(Instrument):
     def generate_keyframes(self):
         fps = bpy.context.scene.render.fps
         obj = self.object
-        obj.animation_data_clear()
+        final = self.final_amount
         prop = self.object_property
         keyframe_prop = prop.split(".")[0]
         base = get_base_position(obj, prop)
 
         for e in self.events():
-            start_frame = e["start"] * fps
-            end_frame = (e["start"] + e["duration"]) * fps
-            duration = e["duration"] * fps
+            start = e["start"] * fps
+            end = (e["start"] + e["duration"]) * fps
+            duration = 1 # 1 frame
+            velocity_scale = 1 + (1 - e["velocity"]) * 1.5
+
+            frame_start = start - (duration * velocity_scale)
+            frame_played = start
+            frame_hold = end
+            frame_end = end + (duration * velocity_scale)
 
             # start
-            exec(f"obj.{prop} = base")
+            set_prop(obj, prop, base)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=start_frame - 1
+                frame=frame_start
             )
 
             # note played
-            exec(f"obj.{prop} = base + self.final_amount")
+            set_prop(obj, prop, base + final)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=start_frame
+                frame=frame_played
             )
 
             # hold final position until note ends
-            exec(f"obj.{prop} = base + self.final_amount")
+            set_prop(obj, prop, base + final)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=end_frame
+                frame=frame_hold
             )
 
             # return to original after note ends
-            exec(f"obj.{prop} = base")
+            set_prop(obj, prop, base)
             obj.keyframe_insert(
                 data_path=keyframe_prop,
-                frame=end_frame + 1
+                frame=frame_end
+            )
+
+class LightInstrument(Instrument):
+    """
+    Represents a light-like instrument that changes light properties when notes are played
+
+    `object_name`: the light object to control
+    `object_property`: the object light property to control, like `data.energy` or `data.spot_size` (for spot lights)
+    `initial_amount`: where the light object initializes before and after a note is hit
+    `final_amount`: where the light object stays at while a note is hit
+    `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
+    `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
+
+    ## Example:
+
+    ```python
+    synth_glow = LightInstrument(
+        "track.mid", # midi file
+        "Cone_Light", # object to control
+        "data.spot_size", # property to control
+        math.radians(15), # initial amount
+        math.radians(30), # final amount
+        note=25, # what pitch controls the object
+        channel=9, # what channel controls the object
+    )
+    synth_glow.generate_keyframes() # generate the keyframes
+    ```
+    """
+    def __init__(
+        self,
+        midi_file: str,
+        object_name: str,
+        object_property: str,
+        initial_amount: float,
+        final_amount: float,
+        note: int | None = None,
+        channel: int | None = None,
+    ):
+        super().__init__(midi_file, note, channel)
+
+        self.object = bpy.data.objects[object_name]
+        self.object_property = object_property
+        self.initial_amount = initial_amount
+        self.final_amount = final_amount
+
+        self.object.animation_data_clear()
+
+    def generate_keyframes(self):
+        fps = bpy.context.scene.render.fps
+        obj = self.object
+        initial = self.initial_amount
+        final = self.final_amount
+        prop = self.object_property
+        keyframe_prop = prop.split(".")[0]
+        base = get_base_position(obj, prop)
+
+        for e in self.events():
+            start = e["start"] * fps
+            end = (e["start"] + e["duration"]) * fps
+            duration = 1 # 1 frame
+            velocity_scale = 1 + (1 - e["velocity"]) * 1.5
+
+            frame_start = start - (duration * velocity_scale)
+            frame_played = start
+            frame_hold = end
+            frame_end = end + (duration * velocity_scale)
+
+            # start
+            set_prop(obj, prop, initial)
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=frame_start
+            )
+
+            # note played
+            set_prop(obj, prop, initial + final)
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=frame_played
+            )
+
+            # hold final position until note ends
+            set_prop(obj, prop, initial + final)
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=frame_hold
+            )
+
+            # return to original after note ends
+            set_prop(obj, prop, initial)
+            obj.keyframe_insert(
+                data_path=keyframe_prop,
+                frame=frame_end
             )
 
 class RoboticInstrument(Instrument):
