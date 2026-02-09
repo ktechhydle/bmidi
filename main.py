@@ -46,7 +46,7 @@ OBJECT_PROPERTIES = [
 ]
 LIGHT_PROPERTIES = [
     ("data.energy", "Light Power", ""),
-    ("data.spot_size", "Spotlight Angle", ""),
+    ("data.spot_size", "Spotlight Angle", "Applies only to spot light objects"),
 ]
 COMPOSITION_TYPES = ("hammer_composition", "movement_composition", "light_composition")
 
