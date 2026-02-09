@@ -27,8 +27,8 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import HammerInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges
-from src.composition import HammerComposition, MovementComposition
+from src.instrument import HammerInstrument, LightInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges
+from src.composition import HammerComposition, LightComposition, MovementComposition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
 LOCATION_PROPERTIES = ("location.x", "location.y", "location.z")
@@ -44,7 +44,11 @@ OBJECT_PROPERTIES = [
     ("scale.y", "Scale Y", ""),
     ("scale.z", "Scale Z", ""),
 ]
-COMPOSITION_TYPES = ("hammer_composition", "movement_composition")
+LIGHT_PROPERTIES = [
+    ("data.energy", "Light Power", ""),
+    ("data.spot_size", "Spotlight Angle", ""),
+]
+COMPOSITION_TYPES = ("hammer_composition", "movement_composition", "light_composition")
 
 class BMIDI_Item(bpy.types.PropertyGroup):
     enabled: bpy.props.BoolProperty(
@@ -57,8 +61,10 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         items=[
             ("hammer_instrument", "Hammer Instrument", ""),
             ("movement_instrument", "Movement Instrument", ""),
+            ("light_instrument", "Light Instrument", ""),
             ("hammer_composition", "Hammer Composition", ""),
             ("movement_composition", "Movement Composition", ""),
+            ("light_composition", "Light Composition", ""),
         ]
     )
     object_name: bpy.props.StringProperty(name="Object")
@@ -91,6 +97,8 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         name="Channel",
         items=get_channel_items,
     )
+
+    # affected object controls
     affects_object: bpy.props.BoolProperty(name="Affects Object")
     affected_object_name: bpy.props.StringProperty(name="Object")
     affected_object_property: bpy.props.EnumProperty(
@@ -100,6 +108,12 @@ class BMIDI_Item(bpy.types.PropertyGroup):
     affected_amount: bpy.props.FloatProperty(
         name="Amount",
         description="The amount that is added to the object property when the object is affected",
+    )
+
+    # light controls
+    light_object_property: bpy.props.EnumProperty(
+        name="Light Property",
+        items=LIGHT_PROPERTIES
     )
 
 class BMIDI_UL_items(bpy.types.UIList):
@@ -186,7 +200,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
             if not item.enabled:
                 continue
 
-            needs_radians = True if item.object_property in ROTATION_PROPERTIES else False
+            needs_radians = (True if item.object_property in ROTATION_PROPERTIES else False) or (item.type in ("light_instrument", "light_composition") and item.light_object_property == "data.spot_size")
 
             pullback_amount = math.radians(item.pullback_amount) if needs_radians else item.pullback_amount
             overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
@@ -219,6 +233,17 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     channel=channel,
                 )
                 instrument.generate_keyframes()
+            elif item.type == "light_instrument":
+                instrument = LightInstrument(
+                    midi_file,
+                    item.object_name,
+                    item.light_object_property,
+                    pullback_amount,
+                    overshoot_amount,
+                    note=item.note if item.use_note else None,
+                    channel=channel,
+                )
+                instrument.generate_keyframes()
             elif item.type == "hammer_composition":
                 composition = HammerComposition(
                     midi_file,
@@ -238,6 +263,18 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_name,
                     item.object_property,
                     pullback_amount,
+                    start_range=item.note_range_start,
+                    end_range=item.note_range_end + 1, # 0 - 128
+                    channel=channel,
+                )
+                composition.generate_keyframes()
+            elif item.type == "light_composition":
+                composition = LightComposition(
+                    midi_file,
+                    item.object_name,
+                    item.light_object_property,
+                    pullback_amount,
+                    overshoot_amount,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     channel=channel,
@@ -295,14 +332,17 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
             layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object") # if compositions is selected change the label
-            layout.prop(item, "object_property")
+            layout.prop(item, "object_property" if item.type != "light_instrument" else "light_object_property")
 
             if item.type in ("movement_instrument", "movement_composition"):
                 layout.prop(item, "pullback_amount", text="Final Amount")
+            elif item.type in ("light_instrument", "light_composition"):
+                layout.prop(item, "pullback_amount", text="Initial Factor")
+                layout.prop(item, "overshoot_amount", text="Final Factor")
             else:
                 layout.prop(item, "pullback_amount")
 
-            if item.type not in ("movement_instrument", "movement_composition"):
+            if item.type not in ("movement_instrument", "movement_composition", "light_instrument", "light_composition"):
                 layout.prop(item, "overshoot_amount")
 
             if item.type in COMPOSITION_TYPES:
@@ -317,7 +357,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 if item.use_note:
                     layout.prop(item, "note")
 
-            if item.type != "movement_instrument":
+            if item.type not in ("movement_instrument", "light_instrument", "light_composition"):
                 layout.prop(item, "affects_object", text="Affects Objects" if item.type in COMPOSITION_TYPES else "Affects Object")
 
                 if item.affects_object:

@@ -324,7 +324,7 @@ class LightInstrument(Instrument):
     Represents a light-like instrument that changes light properties when notes are played
 
     `object_name`: the light object to control
-    `object_property`: the object light property to control, like `data.energy` or `data.spot_size` (for spot lights)
+    `light_property`: the light property to control, like `data.energy` or `data.spot_size` (for spot lights)
     `initial_amount`: where the light object initializes before and after a note is hit
     `final_amount`: where the light object stays at while a note is hit
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
@@ -349,7 +349,7 @@ class LightInstrument(Instrument):
         self,
         midi_file: str,
         object_name: str,
-        object_property: str,
+        light_property: str,
         initial_amount: float,
         final_amount: float,
         note: int | None = None,
@@ -358,20 +358,19 @@ class LightInstrument(Instrument):
         super().__init__(midi_file, note, channel)
 
         self.object = bpy.data.objects[object_name]
-        self.object_property = object_property
+        self.light_property = light_property
         self.initial_amount = initial_amount
         self.final_amount = final_amount
 
-        self.object.animation_data_clear()
+        self.object.data.animation_data_clear()
 
     def generate_keyframes(self):
         fps = bpy.context.scene.render.fps
         obj = self.object
         initial = self.initial_amount
         final = self.final_amount
-        prop = self.object_property
-        keyframe_prop = prop.split(".")[0]
-        base = get_base_position(obj, prop)
+        prop = self.light_property
+        keyframe_prop = prop.split(".")[1]
 
         for e in self.events():
             start = e["start"] * fps
@@ -386,28 +385,27 @@ class LightInstrument(Instrument):
 
             # start
             set_prop(obj, prop, initial)
-            obj.keyframe_insert(
+            obj.data.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_start
             )
 
             # note played
             set_prop(obj, prop, initial + final)
-            obj.keyframe_insert(
+            obj.data.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_played
             )
 
             # hold final position until note ends
-            set_prop(obj, prop, initial + final)
-            obj.keyframe_insert(
+            obj.data.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_hold
             )
 
             # return to original after note ends
             set_prop(obj, prop, initial)
-            obj.keyframe_insert(
+            obj.data.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_end
             )
