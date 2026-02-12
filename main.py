@@ -27,7 +27,7 @@ bl_info = {
 
 import bpy
 import math
-from src.instrument import HammerInstrument, LightInstrument, MovementInstrument, get_channel_items, get_midi_channel_ranges
+from src.instrument import HammerInstrument, LightInstrument, MovementInstrument, RoboticInstrument, get_channel_items, get_midi_channel_ranges
 from src.composition import HammerComposition, LightComposition, MovementComposition
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -62,6 +62,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("hammer_instrument", "Hammer Instrument", ""),
             ("movement_instrument", "Movement Instrument", ""),
             ("light_instrument", "Light Instrument", ""),
+            ("robotic_instrument", "Robotic Instrument", ""),
             ("hammer_composition", "Hammer Composition", ""),
             ("movement_composition", "Movement Composition", ""),
             ("light_composition", "Light Composition", ""),
@@ -116,6 +117,9 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         items=LIGHT_PROPERTIES
     )
     light_object_fade_effect: bpy.props.BoolProperty(name="Fade Effect")
+
+    # robotic controls
+    robot_target_object_name: bpy.props.StringProperty(name="Target Object")
 
 class BMIDI_UL_items(bpy.types.UIList):
     def draw_item(
@@ -246,6 +250,16 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     channel=channel,
                 )
                 instrument.generate_keyframes()
+            elif item.type == "robotic_instrument":
+                instrument = RoboticInstrument(
+                    midi_file,
+                    item.object_name,
+                    item.robot_target_object_name,
+                    note=item.note if item.use_note else None,
+                    channel=channel,
+                    affected_object=affected_object,
+                )
+                instrument.generate_keyframes()
             elif item.type == "hammer_composition":
                 composition = HammerComposition(
                     midi_file,
@@ -334,18 +348,22 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
-            layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object") # if compositions is selected change the label
-            layout.prop(item, "object_property" if item.type != "light_instrument" else "light_object_property")
+            layout.prop(item, "object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else ("Object" if item.type != "robotic_instrument" else "Control Object")) # if compositions is selected change the label
+
+            if item.type != "robotic_instrument":
+                layout.prop(item, "object_property" if item.type != "light_instrument" else "light_object_property")
+            else:
+                layout.prop(item, "robot_target_object_name")
 
             if item.type in ("movement_instrument", "movement_composition"):
                 layout.prop(item, "pullback_amount", text="Final Amount")
             elif item.type in ("light_instrument", "light_composition"):
                 layout.prop(item, "pullback_amount", text="Initial Factor")
                 layout.prop(item, "overshoot_amount", text="Final Factor")
-            else:
+            elif item.type != "robotic_instrument":
                 layout.prop(item, "pullback_amount")
 
-            if item.type not in ("movement_instrument", "movement_composition", "light_instrument", "light_composition"):
+            if item.type not in ("movement_instrument", "movement_composition", "light_instrument", "light_composition", "robotic_instrument"):
                 layout.prop(item, "overshoot_amount")
 
             if item.type in COMPOSITION_TYPES:
