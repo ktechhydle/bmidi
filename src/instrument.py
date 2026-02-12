@@ -1,6 +1,7 @@
 import mido
 import math
 import bpy
+import mathutils
 from collections import defaultdict
 
 
@@ -420,6 +421,7 @@ class RoboticInstrument(Instrument):
 
     `control_object`: the object to control (typically an IK target)
     `target_object`: the object to reach and hit the note
+    `pullback_amount`: how far the arm should pull back before hitting a note
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
     `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
@@ -431,6 +433,7 @@ class RoboticInstrument(Instrument):
         "track.mid", # midi file
         "IK_Target", # object to control
         "Snare_Drum", # target object to hit
+        0.1, # how far to wind up
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
         affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
@@ -443,6 +446,7 @@ class RoboticInstrument(Instrument):
         midi_file: str,
         control_object: str,
         target_object: str,
+        pullback_amount: float,
         note: int | None = None,
         channel: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
@@ -451,6 +455,7 @@ class RoboticInstrument(Instrument):
 
         self.control_object = bpy.data.objects[control_object]
         self.target_object = bpy.data.objects[target_object]
+        self.pullback_amount = pullback_amount
 
         if affected_object is not None:
             self.affected_object = bpy.data.objects[affected_object[0]]
@@ -465,6 +470,7 @@ class RoboticInstrument(Instrument):
         fps = bpy.context.scene.render.fps
         control = self.control_object
         target = self.target_object
+        pullback = self.pullback_amount
         base = control.location.copy()
 
         for e in self.events():
@@ -472,16 +478,24 @@ class RoboticInstrument(Instrument):
             duration = 0.08 * fps # ~80ms
             pullback_scale = 1 + (1 - e["velocity"]) * 1.5
 
+            # start
             control.location = base
             control.keyframe_insert(
-                data_path=f'location',
+                data_path="location",
                 frame=start - (duration * pullback_scale)
+            )
+
+            # pullback
+            control.location = base + mathutils.Vector((pullback, pullback, pullback))
+            control.keyframe_insert(
+                data_path="location",
+                frame=start - duration
             )
 
             # hit
             control.location = target.location
             control.keyframe_insert(
-                data_path=f'location',
+                data_path="location",
                 frame=start
             )
 
@@ -513,6 +527,6 @@ class RoboticInstrument(Instrument):
             # return
             control.location = base
             control.keyframe_insert(
-                data_path=f'location',
+                data_path="location",
                 frame=start + (duration * pullback_scale)
             )

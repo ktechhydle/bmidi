@@ -255,6 +255,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     midi_file,
                     item.object_name,
                     item.robot_target_object_name,
+                    pullback_amount,
                     note=item.note if item.use_note else None,
                     channel=channel,
                     affected_object=affected_object,
@@ -360,7 +361,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             elif item.type in ("light_instrument", "light_composition"):
                 layout.prop(item, "pullback_amount", text="Initial Factor")
                 layout.prop(item, "overshoot_amount", text="Final Factor")
-            elif item.type != "robotic_instrument":
+            else:
                 layout.prop(item, "pullback_amount")
 
             if item.type not in ("movement_instrument", "movement_composition", "light_instrument", "light_composition", "robotic_instrument"):
