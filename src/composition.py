@@ -1,5 +1,5 @@
 import bpy
-from src.instrument import HammerInstrument, LightInstrument, MovementInstrument
+from src.instrument import HammerInstrument, LightInstrument, MovementInstrument, RoboticInstrument
 
 class Composition:
     def __init__(
@@ -122,6 +122,43 @@ class LightComposition(Composition):
                 fade_effect=fade_effect,
                 note=i,
                 channel=channel,
+            )
+            self.instruments.append(instrument)
+
+    def generate_keyframes(self):
+        for instrument in self.instruments:
+            instrument.generate_keyframes()
+
+class RoboticComposition(Composition):
+    """
+    Represents a robotic arm that will move to hit specified targets (notes)
+
+    Targets are represented with the format `<object_prefix>_<note_number>`, for example, a drum head might be named `Snare_25`
+    """
+    def __init__(
+        self,
+        midi_file: str,
+        control_object: str,
+        target_object_prefix: str,
+        pullback_amount: float,
+        start_range: int = 0,
+        end_range: int = 127,
+        channel: int | None = None,
+        affected_object: tuple[str, str, float] | None = None,
+    ):
+        self.instruments: list[RoboticInstrument] = []
+
+        for i in range(start_range, end_range):
+            target_object_name = f"{target_object_prefix}_{i}"
+
+            instrument = RoboticInstrument(
+                midi_file,
+                control_object,
+                target_object_name,
+                pullback_amount,
+                note=i,
+                channel=channel,
+                affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
             )
             self.instruments.append(instrument)
 
