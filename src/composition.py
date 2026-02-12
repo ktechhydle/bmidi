@@ -103,6 +103,7 @@ class LightComposition(Composition):
         light_property: str,
         initial_amount: float,
         final_amount: float,
+        fade_effect: bool = False,
         start_range: int = 0,
         end_range: int = 127,
         channel: int | None = None,
@@ -118,6 +119,7 @@ class LightComposition(Composition):
                 light_property,
                 initial_amount,
                 final_amount,
+                fade_effect=fade_effect,
                 note=i,
                 channel=channel,
             )

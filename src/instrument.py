@@ -352,6 +352,7 @@ class LightInstrument(Instrument):
         light_property: str,
         initial_amount: float,
         final_amount: float,
+        fade_effect: bool = False,
         note: int | None = None,
         channel: int | None = None,
     ):
@@ -361,6 +362,7 @@ class LightInstrument(Instrument):
         self.light_property = light_property
         self.initial_amount = initial_amount
         self.final_amount = final_amount
+        self.fade_effect = fade_effect
 
         self.object.data.animation_data_clear()
 
@@ -369,6 +371,7 @@ class LightInstrument(Instrument):
         obj = self.object
         initial = self.initial_amount
         final = self.final_amount
+        fade_effect = self.fade_effect
         prop = self.light_property
         keyframe_prop = prop.split(".")[1]
 
@@ -397,11 +400,12 @@ class LightInstrument(Instrument):
                 frame=frame_played
             )
 
-            # hold final position until note ends
-            obj.data.keyframe_insert(
-                data_path=keyframe_prop,
-                frame=frame_hold
-            )
+            if not fade_effect:
+                # hold final position until note ends
+                obj.data.keyframe_insert(
+                    data_path=keyframe_prop,
+                    frame=frame_hold
+                )
 
             # return to original after note ends
             set_prop(obj, prop, initial)

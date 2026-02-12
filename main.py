@@ -115,6 +115,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         name="Light Property",
         items=LIGHT_PROPERTIES
     )
+    light_object_fade_effect: bpy.props.BoolProperty(name="Fade Effect")
 
 class BMIDI_UL_items(bpy.types.UIList):
     def draw_item(
@@ -240,6 +241,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.light_object_property,
                     pullback_amount,
                     overshoot_amount,
+                    fade_effect=item.light_object_fade_effect,
                     note=item.note if item.use_note else None,
                     channel=channel,
                 )
@@ -275,6 +277,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.light_object_property,
                     pullback_amount,
                     overshoot_amount,
+                    fade_effect=item.light_object_fade_effect,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     channel=channel,
@@ -357,13 +360,16 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 if item.use_note:
                     layout.prop(item, "note")
 
-            if item.type not in ("movement_instrument", "light_instrument", "light_composition"):
+            if item.type not in ("movement_instrument", "movement_composition", "light_instrument", "light_composition"):
                 layout.prop(item, "affects_object", text="Affects Objects" if item.type in COMPOSITION_TYPES else "Affects Object")
 
                 if item.affects_object:
                     layout.prop(item, "affected_object_name", text="Object Prefix" if item.type in COMPOSITION_TYPES else "Object")
                     layout.prop(item, "affected_object_property")
                     layout.prop(item, "affected_amount")
+
+            if item.type in ("light_instrument", "light_composition"):
+                layout.prop(item, "light_object_fade_effect")
 
             if scene.bmidi_midi_file:
                 midi_path = scene.bmidi_midi_file
