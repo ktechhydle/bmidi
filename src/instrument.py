@@ -532,8 +532,9 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = base
+            control.location = target.location + mathutils.Vector((0, 0, pullback))
             control.keyframe_insert(
                 data_path="location",
                 frame=start + (duration * pullback_scale)
             )
+            base = target.location.copy()
