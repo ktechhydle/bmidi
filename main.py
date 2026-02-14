@@ -123,6 +123,14 @@ class BMIDI_Item(bpy.types.PropertyGroup):
 
     # robotic controls
     robot_target_object_name: bpy.props.StringProperty(name="Target Object")
+    robot_pullback_axis: bpy.props.EnumProperty(
+        name="Pullback Axis",
+        items=[
+            ("x", "X Axis", ""),
+            ("y", "Y Axis", ""),
+            ("z", "Z Axis", ""),
+        ]
+    )
 
 class BMIDI_UL_items(bpy.types.UIList):
     def draw_item(
@@ -259,6 +267,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_name,
                     item.robot_target_object_name,
                     pullback_amount,
+                    item.robot_pullback_axis,
                     note=item.note if item.use_note else None,
                     channel=channel,
                     affected_object=affected_object,
@@ -307,6 +316,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_name,
                     item.robot_target_object_name,
                     pullback_amount,
+                    item.robot_pullback_axis,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
                     affected_object=affected_object,
@@ -374,6 +384,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 layout.prop(item, "object_property" if item.type != "light_instrument" else "light_object_property")
             else:
                 layout.prop(item, "robot_target_object_name", text="Target Object" if item.type != "robotic_composition" else "Target Object Prefix")
+                layout.prop(item, "robot_pullback_axis")
 
             if item.type in ("movement_instrument", "movement_composition"):
                 layout.prop(item, "pullback_amount", text="Final Amount")

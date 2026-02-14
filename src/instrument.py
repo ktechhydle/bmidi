@@ -422,6 +422,7 @@ class RoboticInstrument(Instrument):
     `control_object`: the object to control (typically an IK target)
     `target_object`: the object to reach and hit the note
     `pullback_amount`: how far the arm should pull back before hitting a note
+    `pullback_axis`: what axis direction pulls back on the arm
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
     `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
@@ -447,6 +448,7 @@ class RoboticInstrument(Instrument):
         control_object: str,
         target_object: str,
         pullback_amount: float,
+        pullback_axis: str,
         note: int | None = None,
         channel: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
@@ -456,6 +458,7 @@ class RoboticInstrument(Instrument):
         self.control_object = bpy.data.objects[control_object]
         self.target_object = bpy.data.objects[target_object]
         self.pullback_amount = pullback_amount
+        self.pullback_axis = pullback_axis
 
         if affected_object is not None:
             self.affected_object = bpy.data.objects[affected_object[0]]
@@ -471,6 +474,7 @@ class RoboticInstrument(Instrument):
         control = self.control_object
         target = self.target_object
         pullback = self.pullback_amount
+        axis = self.pullback_axis
         base = control.location.copy()
 
         for e in self.events():
@@ -486,14 +490,20 @@ class RoboticInstrument(Instrument):
             )
 
             # pullback
-            control.location.z = base.z + pullback
+            set_prop(control, f"location.{axis}", getattr(base, axis) + pullback)
             control.keyframe_insert(
                 data_path="location",
                 frame=start - duration
             )
 
             # move
-            control.location = target.location + mathutils.Vector((0, 0, pullback))
+            control.location = target.location + mathutils.Vector(
+                (
+                    pullback if axis == "x" else 0,
+                    pullback if axis == "y" else 0,
+                    pullback if axis == "x" else 0,
+                )
+            )
             control.keyframe_insert(
                 data_path="location",
                 frame=start - (duration / 2)
@@ -532,7 +542,13 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = target.location + mathutils.Vector((0, 0, pullback))
+            control.location = target.location + mathutils.Vector(
+                (
+                    pullback if axis == "x" else 0,
+                    pullback if axis == "y" else 0,
+                    pullback if axis == "x" else 0,
+                )
+            )
             control.keyframe_insert(
                 data_path="location",
                 frame=start + (duration * pullback_scale)

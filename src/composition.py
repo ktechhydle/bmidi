@@ -141,6 +141,7 @@ class RoboticComposition(Composition):
         control_object: str,
         target_object_prefix: str,
         pullback_amount: float,
+        pullback_axis: str,
         start_range: int = 0,
         end_range: int = 127,
         channel: int | None = None,
@@ -156,6 +157,7 @@ class RoboticComposition(Composition):
                 control_object,
                 target_object_name,
                 pullback_amount,
+                pullback_axis,
                 note=i,
                 channel=channel,
                 affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
