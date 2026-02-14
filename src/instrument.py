@@ -476,6 +476,7 @@ class RoboticInstrument(Instrument):
         pullback = self.pullback_amount
         axis = self.pullback_axis
         base = control.location.copy()
+        # final_base = control.location.copy()
 
         for e in self.events():
             start = e["start"] * fps
@@ -542,8 +543,33 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = base
+            control.location = target.location + mathutils.Vector(
+                (
+                    pullback if axis == "x" else 0,
+                    pullback if axis == "y" else 0,
+                    pullback if axis == "z" else 0,
+                )
+            )
             control.keyframe_insert(
                 data_path="location",
                 frame=start + (duration / 2)
             )
+            base = target.location + mathutils.Vector(
+                (
+                    pullback if axis == "x" else 0,
+                    pullback if axis == "y" else 0,
+                    pullback if axis == "z" else 0,
+                )
+            )
+
+        # return to final resting position after all motion is complete
+        # event = self.events()[-1]
+        # start = (event["start"] + event["duration"]) * fps
+        # pullback_scale = 1 + (1 - event["velocity"]) * 1.5
+        # duration = ((target.location - base).length / pullback_scale) * fps
+
+        # control.location = final_base
+        # control.keyframe_insert(
+        #     data_path="location",
+        #     frame=start + duration
+        # )
