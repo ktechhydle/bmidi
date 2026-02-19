@@ -450,6 +450,7 @@ class RoboticInstrument(Instrument):
         target_object: str,
         pullback_amount: float,
         pullback_axis: str,
+        initialize_enabled: bool = False,
         return_enabled: bool = False,
         note: int | None = None,
         channel: int | None = None,
@@ -461,8 +462,10 @@ class RoboticInstrument(Instrument):
         self.target_object = bpy.data.objects[target_object]
         self.pullback_amount = pullback_amount
         self.pullback_axis = pullback_axis
-        self.return_enabled = return_enabled
         self.note = note
+
+        self._initialize_enabled = initialize_enabled
+        self._return_enabled = return_enabled
 
         if affected_object is not None:
             self.affected_object = bpy.data.objects[affected_object[0]]
@@ -488,6 +491,16 @@ class RoboticInstrument(Instrument):
                 pullback if axis == "z" else 0,
             )
         )
+
+        if self.events() and self._initialize_enabled:
+            event = self.events()[0]
+            start = (event["start"] - event["duration"]) * fps
+
+            control.location = base
+            control.keyframe_insert(
+                data_path="location",
+                frame=start
+            )
 
         for e in self.events():
             start = e["start"] * fps
@@ -556,7 +569,7 @@ class RoboticInstrument(Instrument):
             )
 
         # return to final resting position after all motion is complete
-        if self.events() and self.return_enabled:
+        if self.events() and self._return_enabled:
             event = self.events()[-1]
             end = (event["start"] + event["duration"]) * fps
 
@@ -565,3 +578,9 @@ class RoboticInstrument(Instrument):
                 data_path="location",
                 frame=end
             )
+
+    def set_initialize_enabled(self, enabled: bool):
+        self._initialize_enabled = enabled
+
+    def set_return_enabled(self, enabled: bool):
+        self._return_enabled = enabled

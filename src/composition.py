@@ -148,7 +148,8 @@ class RoboticComposition(Composition):
         affected_object: tuple[str, str, float] | None = None,
     ):
         self.instruments: list[RoboticInstrument] = []
-        self.final_note = None
+        self._starting_note = None
+        self._final_note = None
 
         all_events = []
 
@@ -178,17 +179,25 @@ class RoboticComposition(Composition):
                 e_copy["note"] = i
                 all_events.append(e_copy)
 
-        # detect the final note globally
+        # detect the final and starting notes globally
         if all_events:
+            starting_event = min(
+                all_events,
+                key=lambda e: e["start"] + e.get("duration", 0)
+            )
             final_event = max(
                 all_events,
                 key=lambda e: e["start"] + e.get("duration", 0)
             )
-            self.final_note = final_event["note"]
+            self._starting_note = starting_event["note"]
+            self._final_note = final_event["note"]
 
     def generate_keyframes(self):
         for instrument in self.instruments:
-            if instrument.note == self.final_note:
-                instrument.return_enabled = True
+            if instrument.note == self._starting_note:
+                instrument.set_initialize_enabled(True)
+
+            if instrument.note == self._final_note:
+                instrument.set_return_enabled(True)
 
             instrument.generate_keyframes()
