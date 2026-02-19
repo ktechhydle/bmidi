@@ -556,12 +556,11 @@ class RoboticInstrument(Instrument):
         # return to final resting position after all motion is complete
         if self.events():
             event = self.events()[-1]
-            start = (event["start"] + event["duration"]) * fps
+            end = (event["start"] + event["duration"]) * fps
             pullback_scale = 1 + (1 - event["velocity"]) * 1.5
-            duration = ((target.location - base).length / pullback_scale) * fps
 
             control.location = final_base
             control.keyframe_insert(
                 data_path="location",
-                frame=start + duration
+                frame=end
             )
