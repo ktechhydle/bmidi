@@ -450,6 +450,7 @@ class RoboticInstrument(Instrument):
         target_object: str,
         pullback_amount: float,
         pullback_axis: str,
+        return_enabled: bool = False,
         note: int | None = None,
         channel: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
@@ -460,6 +461,8 @@ class RoboticInstrument(Instrument):
         self.target_object = bpy.data.objects[target_object]
         self.pullback_amount = pullback_amount
         self.pullback_axis = pullback_axis
+        self.return_enabled = return_enabled
+        self.note = note
 
         if affected_object is not None:
             self.affected_object = bpy.data.objects[affected_object[0]]
@@ -554,7 +557,7 @@ class RoboticInstrument(Instrument):
             base = control.location
 
         # return to final resting position after all motion is complete
-        if self.events():
+        if self.events() and self.return_enabled:
             event = self.events()[-1]
             end = (event["start"] + event["duration"]) * fps
             pullback_scale = 1 + (1 - event["velocity"]) * 1.5

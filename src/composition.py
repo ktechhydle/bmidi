@@ -148,6 +148,9 @@ class RoboticComposition(Composition):
         affected_object: tuple[str, str, float] | None = None,
     ):
         self.instruments: list[RoboticInstrument] = []
+        self.final_note = None
+
+        all_events = []
 
         for i in range(start_range, end_range):
             target_object_name = f"{target_object_prefix}_{i}"
@@ -160,10 +163,32 @@ class RoboticComposition(Composition):
                 pullback_axis,
                 note=i,
                 channel=channel,
-                affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
+                affected_object=(
+                    f"{affected_object[0]}_{i}",
+                    affected_object[1],
+                    affected_object[2]
+                ) if affected_object is not None else None
             )
+
             self.instruments.append(instrument)
+
+            # collect events globally
+            for e in instrument.events():
+                e_copy = e.copy()
+                e_copy["note"] = i
+                all_events.append(e_copy)
+
+        # detect the final note globally
+        if all_events:
+            final_event = max(
+                all_events,
+                key=lambda e: e["start"] + e.get("duration", 0)
+            )
+            self.final_note = final_event["note"]
 
     def generate_keyframes(self):
         for instrument in self.instruments:
+            if instrument.note == self.final_note:
+                instrument.return_enabled = True
+
             instrument.generate_keyframes()
