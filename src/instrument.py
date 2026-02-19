@@ -435,6 +435,7 @@ class RoboticInstrument(Instrument):
         "IK_Target", # object to control
         "Snare_Drum", # target object to hit
         0.1, # how far to wind up
+        "z", # what axis to wind up
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
         affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
@@ -476,7 +477,15 @@ class RoboticInstrument(Instrument):
         pullback = self.pullback_amount
         axis = self.pullback_axis
         base = control.location.copy()
-        # final_base = control.location.copy()
+        final_base = control.location.copy()
+
+        offset_vec = mathutils.Vector(
+            (
+                pullback if axis == "x" else 0,
+                pullback if axis == "y" else 0,
+                pullback if axis == "z" else 0,
+            )
+        )
 
         for e in self.events():
             start = e["start"] * fps
@@ -498,13 +507,7 @@ class RoboticInstrument(Instrument):
             )
 
             # move
-            control.location = target.location + mathutils.Vector(
-                (
-                    pullback if axis == "x" else 0,
-                    pullback if axis == "y" else 0,
-                    pullback if axis == "z" else 0,
-                )
-            )
+            control.location = target.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
                 frame=start - (duration / 2)
@@ -543,33 +546,22 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = target.location + mathutils.Vector(
-                (
-                    pullback if axis == "x" else 0,
-                    pullback if axis == "y" else 0,
-                    pullback if axis == "z" else 0,
-                )
-            )
+            control.location = target.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
                 frame=start + (duration / 2)
             )
-            base = target.location + mathutils.Vector(
-                (
-                    pullback if axis == "x" else 0,
-                    pullback if axis == "y" else 0,
-                    pullback if axis == "z" else 0,
-                )
-            )
+            base = control.location
 
         # return to final resting position after all motion is complete
-        # event = self.events()[-1]
-        # start = (event["start"] + event["duration"]) * fps
-        # pullback_scale = 1 + (1 - event["velocity"]) * 1.5
-        # duration = ((target.location - base).length / pullback_scale) * fps
+        if self.events():
+            event = self.events()[-1]
+            start = (event["start"] + event["duration"]) * fps
+            pullback_scale = 1 + (1 - event["velocity"]) * 1.5
+            duration = ((target.location - base).length / pullback_scale) * fps
 
-        # control.location = final_base
-        # control.keyframe_insert(
-        #     data_path="location",
-        #     frame=start + duration
-        # )
+            control.location = final_base
+            control.keyframe_insert(
+                data_path="location",
+                frame=start + duration
+            )
