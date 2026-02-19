@@ -480,7 +480,6 @@ class RoboticInstrument(Instrument):
         pullback = self.pullback_amount
         axis = self.pullback_axis
         base = control.location.copy()
-        final_base = control.location.copy()
 
         offset_vec = mathutils.Vector(
             (
@@ -492,35 +491,36 @@ class RoboticInstrument(Instrument):
 
         for e in self.events():
             start = e["start"] * fps
-            pullback_scale = 1 + (1 - e["velocity"]) * 1.5
-            duration = ((target.location - base).length / pullback_scale) * fps
+            # pullback_scale = 1 + (1 - e["velocity"]) * 1.5
+            duration = e["duration"] * fps
 
-            # start
-            control.location = base
-            control.keyframe_insert(
-                data_path="location",
-                frame=start - (duration * pullback_scale)
-            )
+            pullback_frames = duration * 0.2
+            strike_frames = duration * 0.3
+            rebound_frames = duration * 0.2
+            pullback_start = start - pullback_frames
+            strike_mid = start - (strike_frames * 0.5)
+            impact = start
+            rebound_end = start + rebound_frames
 
             # pullback
-            set_prop(control, f"location.{axis}", getattr(base, axis) + pullback)
-            control.keyframe_insert(
-                data_path="location",
-                frame=start - duration
-            )
-
-            # move
             control.location = target.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
-                frame=start - (duration / 2)
+                frame=pullback_start
+            )
+
+            # strike mid
+            control.location = target.location + (offset_vec * 0.5)
+            control.keyframe_insert(
+                data_path="location",
+                frame=strike_mid
             )
 
             # hit
             control.location = target.location
             control.keyframe_insert(
                 data_path="location",
-                frame=start
+                frame=impact
             )
 
             # the affected object moves on note hits
@@ -549,20 +549,18 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = target.location + offset_vec
+            control.location = target.location + (offset_vec * 0.4)
             control.keyframe_insert(
                 data_path="location",
-                frame=start + (duration / 2)
+                frame=rebound_end
             )
-            base = control.location
 
         # return to final resting position after all motion is complete
         if self.events() and self.return_enabled:
             event = self.events()[-1]
             end = (event["start"] + event["duration"]) * fps
-            pullback_scale = 1 + (1 - event["velocity"]) * 1.5
 
-            control.location = final_base
+            control.location = base
             control.keyframe_insert(
                 data_path="location",
                 frame=end
