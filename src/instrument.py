@@ -52,6 +52,22 @@ def set_prop(obj, prop_path: str, value):
     container = getattr(obj, root)
     setattr(container, attr, value)
 
+def get_emission_input(mat):
+    nodes = mat.node_tree.nodes
+
+    # emission node
+    for node in nodes:
+        if node.type == 'EMISSION':
+            return node.inputs.get("Strength")
+
+    # principled BSDF
+    for node in nodes:
+        if node.type == 'BSDF_PRINCIPLED':
+            if "Emission Strength" in node.inputs:
+                return node.inputs["Emission Strength"]
+
+    return None
+
 
 class Instrument:
     def __init__(self, midi_file: str, note: int | None = None, channel: int | None = None):
@@ -328,6 +344,8 @@ class LightInstrument(Instrument):
     `light_property`: the light property to control, like `data.energy` or `data.spot_size` (for spot lights)
     `initial_amount`: where the light object initializes before and after a note is hit
     `final_amount`: where the light object stays at while a note is hit
+    `mode`: "light" for light objects and "emission" for materials
+    `fade_effect`: add a fade effect at the end of each note
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
 
@@ -340,6 +358,7 @@ class LightInstrument(Instrument):
         "data.spot_size", # property to control
         math.radians(15), # initial amount
         math.radians(30), # final amount
+        mode="light", # mode
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
     )
@@ -353,6 +372,7 @@ class LightInstrument(Instrument):
         light_property: str,
         initial_amount: float,
         final_amount: float,
+        mode: str = "light",
         fade_effect: bool = False,
         note: int | None = None,
         channel: int | None = None,
@@ -363,6 +383,7 @@ class LightInstrument(Instrument):
         self.light_property = light_property
         self.initial_amount = initial_amount
         self.final_amount = final_amount
+        self.mode = mode
         self.fade_effect = fade_effect
 
         self.object.data.animation_data_clear()
@@ -374,7 +395,18 @@ class LightInstrument(Instrument):
         final = self.final_amount
         fade_effect = self.fade_effect
         prop = self.light_property
+        target = obj.data
         keyframe_prop = prop.split(".")[1]
+
+        if self.mode == "emission":
+            mat = next((m for m in obj.data.materials if m), None)
+            socket = get_emission_input(mat)
+
+            if socket is None:
+                raise ValueError("No emission input found.")
+
+            target = socket
+            keyframe_prop = "default_value"
 
         for e in self.events():
             start = e["start"] * fps
@@ -388,29 +420,38 @@ class LightInstrument(Instrument):
             frame_end = end + (duration * velocity_scale)
 
             # start
-            set_prop(obj, prop, initial)
-            obj.data.keyframe_insert(
+            if self.mode == "emission":
+                target.default_value = initial
+            else:
+                 set_prop(obj, prop, initial)
+            target.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_start
             )
 
             # note played
-            set_prop(obj, prop, initial + final)
-            obj.data.keyframe_insert(
+            if self.mode == "emission":
+                target.default_value = initial + final
+            else:
+                 set_prop(obj, prop, initial + final)
+            target.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_played
             )
 
             if not fade_effect:
                 # hold final position until note ends
-                obj.data.keyframe_insert(
+                target.keyframe_insert(
                     data_path=keyframe_prop,
                     frame=frame_hold
                 )
 
             # return to original after note ends
-            set_prop(obj, prop, initial)
-            obj.data.keyframe_insert(
+            if self.mode == "emission":
+                target.default_value = initial
+            else:
+                 set_prop(obj, prop, initial)
+            target.keyframe_insert(
                 data_path=keyframe_prop,
                 frame=frame_end
             )

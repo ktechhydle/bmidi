@@ -49,6 +49,7 @@ OBJECT_PROPERTIES = [
 ]
 LIGHT_PROPERTIES = [
     ("data.energy", "Light Power", ""),
+    ("emission.emission", "Emissive Power", "Applies only to objects with an emissive material"),
     ("data.spot_size", "Spotlight Angle", "Applies only to spot light objects"),
 ]
 
@@ -256,6 +257,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.light_object_property,
                     pullback_amount,
                     overshoot_amount,
+                    mode="light" if item.light_object_property != "emission.emission" else "emission",
                     fade_effect=item.light_object_fade_effect,
                     note=item.note if item.use_note else None,
                     channel=channel,
@@ -304,6 +306,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.light_object_property,
                     pullback_amount,
                     overshoot_amount,
+                    mode="light" if item.light_object_property != "emission.emission" else "emission",
                     fade_effect=item.light_object_fade_effect,
                     start_range=item.note_range_start,
                     end_range=item.note_range_end + 1, # 0 - 128
@@ -381,7 +384,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 layout.prop(item, "object_name", text="Object" if item.type not in ("robotic_instrument", "robotic_composition") else "Control Object")
 
             if item.type not in ("robotic_instrument", "robotic_composition"):
-                layout.prop(item, "object_property" if item.type != "light_instrument" else "light_object_property")
+                layout.prop(item, "object_property" if item.type not in ("light_instrument", "light_composition") else "light_object_property")
             else:
                 layout.prop(item, "robot_target_object_name", text="Target Object" if item.type != "robotic_composition" else "Target Object Prefix")
                 layout.prop(item, "robot_pullback_axis")
