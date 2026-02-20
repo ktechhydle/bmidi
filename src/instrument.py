@@ -556,15 +556,15 @@ class RoboticInstrument(Instrument):
             impact = start
             rebound_end = start + rebound_frames
 
-            # pullback
-            control.location = target.location + offset_vec
+            # move up
+            control.location = control.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
                 frame=pullback_start
             )
 
-            # strike mid
-            control.location = target.location + (offset_vec * 0.5)
+            # across
+            control.location = target.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
                 frame=strike_mid

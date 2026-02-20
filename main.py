@@ -270,6 +270,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.robot_target_object_name,
                     pullback_amount,
                     item.robot_pullback_axis,
+                    initialize_enabled=True,
+                    return_enabled=True,
                     note=item.note if item.use_note else None,
                     channel=channel,
                     affected_object=affected_object,

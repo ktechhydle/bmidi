@@ -39,6 +39,11 @@ class HammerComposition(Composition):
         for i in range(start_range, end_range):
             object_name = f"{object_prefix}{i}"
 
+            try:
+                bpy.data.objects[object_name]
+            except:
+                continue
+
             instrument = HammerInstrument(
                 midi_file,
                 object_name,
@@ -75,6 +80,11 @@ class MovementComposition(Composition):
 
         for i in range(start_range, end_range):
             object_name = f"{object_prefix}{i}"
+
+            try:
+                bpy.data.objects[object_name]
+            except:
+                continue
 
             instrument = MovementInstrument(
                 midi_file,
@@ -113,6 +123,11 @@ class LightComposition(Composition):
 
         for i in range(start_range, end_range):
             object_name = f"{object_prefix}{i}"
+
+            try:
+                bpy.data.objects[object_name]
+            except:
+                continue
 
             instrument = LightInstrument(
                 midi_file,
@@ -157,6 +172,11 @@ class RoboticComposition(Composition):
 
         for i in range(start_range, end_range):
             target_object_name = f"{target_object_prefix}{i}"
+
+            try:
+                bpy.data.objects[target_object_name]
+            except:
+                continue
 
             instrument = RoboticInstrument(
                 midi_file,
