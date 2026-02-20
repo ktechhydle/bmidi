@@ -20,7 +20,7 @@ class HammerComposition(Composition):
     """
     Represents a composition of hammer instruments, like a piano, xylophone, etc.
 
-    Objects are represented with the format `<object_prefix>_<note_number>`, for example, a piano key might be named `Key_25`
+    Objects are represented with the format `<object_prefix><note_number>`, for example, a piano key might be named `Key25`
     """
     def __init__(
         self,
@@ -37,7 +37,7 @@ class HammerComposition(Composition):
         self.instruments: list[HammerInstrument] = []
 
         for i in range(start_range, end_range):
-            object_name = f"{object_prefix}_{i}"
+            object_name = f"{object_prefix}{i}"
 
             instrument = HammerInstrument(
                 midi_file,
@@ -47,7 +47,7 @@ class HammerComposition(Composition):
                 overshoot_amount=overshoot_amount,
                 note=i,
                 channel=channel,
-                affected_object=(f"{affected_object[0]}_{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
+                affected_object=(f"{affected_object[0]}{i}", affected_object[1], affected_object[2]) if affected_object is not None else None
             )
             self.instruments.append(instrument)
 
@@ -74,7 +74,7 @@ class MovementComposition(Composition):
         self.instruments: list[MovementInstrument] = []
 
         for i in range(start_range, end_range):
-            object_name = f"{object_prefix}_{i}"
+            object_name = f"{object_prefix}{i}"
 
             instrument = MovementInstrument(
                 midi_file,
@@ -94,7 +94,7 @@ class LightComposition(Composition):
     """
     Represents a composition of light instruments, like studio effects, splashes, etc.
 
-    Objects are represented with the format `<object_prefix>_<note_number>`, for example, a piano key might be named `Key_25`
+    Objects are represented with the format `<object_prefix><note_number>`, for example, a piano key might be named `Key25`
     """
     def __init__(
         self,
@@ -111,7 +111,7 @@ class LightComposition(Composition):
         self.instruments: list[LightInstrument] = []
 
         for i in range(start_range, end_range):
-            object_name = f"{object_prefix}_{i}"
+            object_name = f"{object_prefix}{i}"
 
             instrument = LightInstrument(
                 midi_file,
@@ -133,7 +133,7 @@ class RoboticComposition(Composition):
     """
     Represents a robotic arm that will move to hit specified targets (notes)
 
-    Targets are represented with the format `<object_prefix>_<note_number>`, for example, a drum head might be named `Snare_25`
+    Targets are represented with the format `<object_prefix><note_number>`, for example, a drum head might be named `Snare25`
     """
     def __init__(
         self,
@@ -154,7 +154,7 @@ class RoboticComposition(Composition):
         all_events = []
 
         for i in range(start_range, end_range):
-            target_object_name = f"{target_object_prefix}_{i}"
+            target_object_name = f"{target_object_prefix}{i}"
 
             instrument = RoboticInstrument(
                 midi_file,
@@ -165,7 +165,7 @@ class RoboticComposition(Composition):
                 note=i,
                 channel=channel,
                 affected_object=(
-                    f"{affected_object[0]}_{i}",
+                    f"{affected_object[0]}{i}",
                     affected_object[1],
                     affected_object[2]
                 ) if affected_object is not None else None

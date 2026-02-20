@@ -45,7 +45,7 @@ Create a new Blender project inside the root of this repository, and open the `m
 - You can add or remove items with the "+" or "-" buttons located in the top right of the panel.
 - Items can either be **instrument controllers** or **composition controllers**, depending on what you select in "Type". 
 - Instruments represent individual objects that can be controlled by an entire midi file, or a specific note in the midi file. 
-- Compositions represent a collection of instruments that map notes to object names. For example, an object named `Key_25` might be hit whenever note 25 is hit in the midi file. Compositions are great for things like xylophones, pianos, marimbas, etc. where you need to control multiple objects all at once based on notes. The format for composition objects is `<object_prefix>_<note_number>`.
+- Compositions represent a collection of instruments that map notes to object names. For example, an object named `Key_25` might be hit whenever note 25 is hit in the midi file. Compositions are great for things like xylophones, pianos, marimbas, etc. where you need to control multiple objects all at once based on notes. The format for composition objects is `<object_prefix><note_number>`.
 - All controllers have a channel selector, allowing you to select what specific channel to use from the midi file.
 - The difference between "Hammer" and "Movement" controllers is that hammer controllers generate the frames for a pull-back and release, and movement controllers generate the frames for a position movement while a note is played.
 
