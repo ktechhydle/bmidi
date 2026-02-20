@@ -49,4 +49,8 @@ Create a new Blender project inside the root of this repository, and open the `m
 - All controllers have a channel selector, allowing you to select what specific channel to use from the midi file.
 - The difference between "Hammer" and "Movement" controllers is that hammer controllers generate the frames for a pull-back and release, and movement controllers generate the frames for a position movement while a note is played.
 
-Clicking "Generate Keyframes" will set the timeline to `-1`, reset the animation data for all instrument and composition objects, then generate the frames. _Generation can be slow with large midi files, optimizations will come in future progress._
+Clicking "Generate Keyframes" will set the timeline to `-1`, reset the animation data for all instrument and composition objects, then generate the frames.
+
+## Capabilites
+
+There are a collection of demo videos in [this YouTube playlist](https://www.youtube.com/playlist?list=PLRZuj2NaHK4KhIysZkML9mRQQlm8HeguG) showcasing what `bmidi` is capable of. Additionally, all music is original.
