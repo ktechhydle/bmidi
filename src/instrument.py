@@ -562,7 +562,7 @@ class RoboticInstrument(Instrument):
                 )
 
             # return
-            control.location = target.location + (offset_vec * 0.4)
+            control.location = target.location + offset_vec
             control.keyframe_insert(
                 data_path="location",
                 frame=rebound_end
