@@ -30,7 +30,7 @@ bl_info = {
 import bpy
 import math
 from src.instrument import get_channel_items, get_midi_channel_ranges
-from src.composition import HammerComposition, LightComposition, MovementComposition
+from src.composition import EffectComposition, HammerComposition, LightComposition, MovementComposition
 from src.controller import RoboticController
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
@@ -78,6 +78,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("hammer_composition", "Hammer Composition", "A collection of hammer instruments that swing back and \"hit\" notes"),
             ("movement_composition", "Movement Composition", "A collection of instruments that hold a certain position while a note is active"),
             ("light_composition", "Light Composition", "A collection of light instruments that can be controlled by light power or material emissivity while a note is active"),
+            ("effect_composition", "Effect Composition", "A collection of effected instruments that have real world physics effects when notes are played"),
             ("robotic_controller", "Robotic Controller", "A controller for robotic arm instruments that that swing back and \"hit\" target objects (notes)"),
         ]
     )
@@ -124,7 +125,19 @@ class BMIDI_Item(bpy.types.PropertyGroup):
 
     # robotic controls
     robot_target_object_name: bpy.props.StringProperty(name="Target Object Prefix")
-    robot_pullback_axis: bpy.props.EnumProperty(
+
+    # effect controls
+    effect: bpy.props.EnumProperty(
+        name="Effect",
+        items=[
+            ("bounce", "Bounce", ""),
+            ("swing", "Swing", ""),
+            ("expand", "Expand", ""),
+        ]
+    )
+
+    # axis controls
+    axis: bpy.props.EnumProperty(
         name="Pullback Axis",
         items=[
             ("x", "X Axis", ""),
@@ -217,7 +230,11 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
             if not item.enabled:
                 continue
 
-            needs_radians = (True if item.object_property in ROTATION_PROPERTIES else False) or (item.type == "light_composition" and item.light_object_property == "data.spot_size")
+            needs_radians = (
+                (True if item.object_property in ROTATION_PROPERTIES else False) or
+                (item.type == "light_composition" and item.light_object_property == "data.spot_size") or
+                (item.type == "effect_composition" and item.effect == "swing")
+            )
 
             pullback_amount = math.radians(item.pullback_amount) if needs_radians else item.pullback_amount
             overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
@@ -262,13 +279,24 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     channel=channel,
                 )
                 composition.generate_keyframes()
+            elif item.type == "effect_composition":
+                composition = EffectComposition(
+                    midi_file,
+                    item.object_prefix,
+                    pullback_amount,
+                    item.axis,
+                    item.effect,
+                    notes,
+                    channel=channel,
+                )
+                composition.generate_keyframes()
             elif item.type == "robotic_controller":
                 instrument = RoboticController(
                     midi_file,
                     item.object_prefix,
                     item.robot_target_object_name,
                     pullback_amount,
-                    item.robot_pullback_axis,
+                    item.axis,
                     notes,
                     channel=channel,
                 )
@@ -327,22 +355,30 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
             layout.prop(item, "object_prefix", text="Object Prefix" if item.type != "robotic_controller" else "Control Object")
 
-            if item.type != "robotic_controller":
+            if item.type not in ("robotic_controller", "effect_composition"):
                 layout.prop(item, "object_property" if item.type not in ("light_instrument", "light_composition") else "light_object_property")
-            else:
+            elif item.type == "robotic_controller":
                 layout.prop(item, "robot_target_object_name")
-                layout.prop(item, "robot_pullback_axis")
+                layout.prop(item, "axis")
 
             if item.type == "movement_composition":
                 layout.prop(item, "pullback_amount", text="Final Amount")
             elif item.type == "light_composition":
                 layout.prop(item, "pullback_amount", text="Initial Factor")
                 layout.prop(item, "overshoot_amount", text="Final Factor")
+            elif item.type == "effect_composition":
+                layout.prop(item, "pullback_amount", text="Effect Amount")
             else:
                 layout.prop(item, "pullback_amount")
 
-            if item.type not in ("movement_composition", "light_composition", "robotic_controller"):
+            if item.type == "effect_composition":
+                layout.prop(item, "effect")
+                layout.prop(item, "axis")
+
+            if item.type not in ("movement_composition", "light_composition", "effect_composition", "robotic_controller"):
                 layout.prop(item, "overshoot_amount")
+
+            layout.separator()
 
             layout.prop(item, "note_range_start")
             layout.prop(item, "note_range_end")

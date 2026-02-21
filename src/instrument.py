@@ -420,3 +420,123 @@ class LightInstrument(Instrument):
                 data_path=keyframe_prop,
                 frame=frame_end
             )
+
+class EffectInstrument(Instrument):
+    """
+    Represents an effect-like instrument that is effected when notes are played (used in combo with other instruments to create physics like effects)
+
+    `object_name`: the object to control
+    `effected_amount`: the amount the object is effected
+    `effected_axis`: what axis is effected
+    `effect`: effect on the object ("bounce" for a bounce-like effect, "swing" for a swing-like effect, or "expand" for a expand-like effect)
+    `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
+    `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
+
+    ## Example:
+
+    ```python
+    kick_drum_effect = EffectInstrument(
+        "track.mid", # midi file
+        "Kick_Drum", # object to control
+        0.1, # amount
+        "bounce", # effect on the object
+        "z", # axis effected
+        note=25, # what pitch controls the object
+        channel=9, # what channel controls the object
+    )
+    kick_drum_effect.generate_keyframes() # generate the keyframes
+    """
+
+    def __init__(self,
+        midi_file: str,
+        object_name: str,
+        effected_amount: float,
+        effected_axis: str,
+        effect: str,
+        note: int | None = None,
+        channel: int | None = None
+    ):
+        super().__init__(midi_file, note, channel)
+
+        self.object = bpy.data.objects[object_name]
+        self.effected_axis = effected_axis
+        self.effected_amount = effected_amount
+        self.effect = effect
+
+        self.object.animation_data_clear()
+
+    def generate_keyframes(self):
+        events = self.events()
+        fps = bpy.context.scene.render.fps
+        obj = self.object
+        amount = self.effected_amount
+        axis = self.effected_axis
+        effect = self.effect
+
+        base_location = get_prop(obj, f"location.{axis}")
+        base_rotation = get_prop(obj, f"rotation_euler.{axis}")
+        base_scale = get_prop(obj, f"scale.{axis}")
+
+        for i, e in enumerate(events):
+            next_event = events[i + 1] if i + 1 < len(events) else None
+            start = e["start"] * fps
+            duration = 0.5 * fps # ~100ms
+            # velocity = 1 + (1 - e["velocity"]) * 1.5
+
+            frame_initial = start - (duration * 0.1)
+            frame_hit = start
+            frame_return = start + duration
+
+            if effect == "bounce":
+                base = base_location
+
+                frames = [
+                    (frame_initial, base),
+                    (frame_hit, base + amount),
+                    (frame_hit + duration * 0.15, base - amount * 0.5),
+                    (frame_hit + duration * 0.3, base + amount * 0.25),
+                    (frame_hit + duration * 0.45, base),
+                    (frame_return, base),
+                ]
+
+                for f, value in frames:
+                    set_prop(obj, f"location.{axis}", value)
+                    obj.keyframe_insert(
+                        data_path="location",
+                        frame=f
+                    )
+            elif effect == "swing":
+                base = base_rotation
+
+                frames = [
+                    (frame_initial, base),
+                    (frame_hit, base + amount),
+                    (frame_hit + duration * 0.2, base - amount * 0.6),
+                    (frame_hit + duration * 0.4, base + amount * 0.3),
+                    (frame_hit + duration * 0.6, base),
+                    (frame_return, base),
+                ]
+
+                for f, value in frames:
+                    set_prop(obj, f"rotation_euler.{axis}", value)
+                    obj.keyframe_insert(
+                        data_path="rotation_euler",
+                        frame=f
+                    )
+            elif effect == "expand":
+                base = base_scale
+
+                frames = [
+                    (frame_initial, base),
+                    (frame_hit, base + amount),
+                    (frame_hit + duration * 0.2, base - amount * 0.3),
+                    (frame_hit + duration * 0.4, base),
+                    (frame_return, base),
+                ]
+
+                for f, value in frames:
+                    set_prop(obj, f"scale.{axis}", value)
+                    obj.keyframe_insert(
+                        data_path="scale",
+                        frame=f
+                    )

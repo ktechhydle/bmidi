@@ -1,11 +1,12 @@
 import mido
 import bpy
 import mathutils
+from src.instrument import get_prop, set_prop
 
 class Controller:
-    def __init__(self, midi_file: str, notes: list[int], channel: int | None = None):
+    def __init__(self, midi_file: str, notes: list[int] = [], channel: int | None = None):
         self._events = []
-        self._notes = []
+        self._notes = notes
 
         midi = mido.MidiFile(midi_file)
         current_time = 0.0
@@ -63,7 +64,7 @@ class RoboticController(Controller):
         target_object_prefix: str,
         pullback_amount: float,
         pullback_axis: str,
-        notes: list[int],
+        notes: list[int] = [],
         channel: int | None = None,
     ):
         super().__init__(midi_file, notes, channel)
@@ -172,10 +173,3 @@ class RoboticController(Controller):
                 # final reset
                 control.location = base
                 control.keyframe_insert(data_path="location", frame=rebound_end + (fps * 1.0))
-
-class EffectController(Controller):
-    """
-    Represents a controller for objects that are effected by notes
-
-    Targets are represented with the format `<object_prefix><note_number>`, for example, a drum head might be named `Snare25`
-    """

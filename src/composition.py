@@ -1,5 +1,5 @@
 import bpy
-from src.instrument import HammerInstrument, LightInstrument, MovementInstrument
+from src.instrument import EffectInstrument, HammerInstrument, LightInstrument, MovementInstrument
 
 class Composition:
     def __init__(
@@ -132,6 +132,47 @@ class LightComposition(Composition):
                 final_amount,
                 mode=mode,
                 fade_effect=fade_effect,
+                note=i,
+                channel=channel,
+            )
+            self.instruments.append(instrument)
+
+    def generate_keyframes(self):
+        for instrument in self.instruments:
+            instrument.generate_keyframes()
+
+class EffectComposition(Composition):
+    """
+    Represents a composition of effected instruments, like drums, xylophone keys, etc.
+
+    Objects are represented with the format `<object_prefix>_<note_number>`, for example, a piano key might be named `Key_25`
+    """
+    def __init__(
+        self,
+        midi_file: str,
+        object_prefix: str,
+        effected_amount: float,
+        effected_axis: str,
+        effect: str,
+        notes: list[int],
+        channel: int | None = None,
+    ):
+        self.instruments: list[EffectInstrument] = []
+
+        for i in notes:
+            object_name = f"{object_prefix}{i}"
+
+            try:
+                bpy.data.objects[object_name]
+            except:
+                continue
+
+            instrument = EffectInstrument(
+                midi_file,
+                object_name,
+                effected_amount,
+                effected_axis,
+                effect,
                 note=i,
                 channel=channel,
             )
