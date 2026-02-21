@@ -123,7 +123,6 @@ class HammerInstrument(Instrument):
     `overshoot_amount`: how far past the object moves from initial position during a note hit
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
-    `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
 
     ## Example:
 
@@ -136,7 +135,6 @@ class HammerInstrument(Instrument):
         overshoot_amount=math.radians(3), # overshoot amount (the origin is assumed as the object's initial position)
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
-        affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
     )
     snare_drum_hammer.generate_keyframes() # generate the keyframes
     ```
@@ -150,7 +148,6 @@ class HammerInstrument(Instrument):
         overshoot_amount: float = 0,
         note: int | None = None,
         channel: int | None = None,
-        affected_object: tuple[str, str, float] | None = None,
     ):
         super().__init__(midi_file, note, channel)
 
@@ -158,13 +155,6 @@ class HammerInstrument(Instrument):
         self.object_property = object_property
         self.pullback_amount = pullback_amount
         self.overshoot_amount = overshoot_amount
-
-        if affected_object is not None:
-            self.affected_object = bpy.data.objects[affected_object[0]]
-            self.affected_object_property = affected_object[1]
-            self.affected_object_movement_amount = affected_object[2]
-
-            self.affected_object.animation_data_clear()
 
         self.object.animation_data_clear()
 
@@ -209,31 +199,6 @@ class HammerInstrument(Instrument):
                 data_path=keyframe_prop,
                 frame=frame_hit
             )
-
-            # the affected object moves on note hits
-            if hasattr(self, "affected_object"):
-                affected_prop = self.affected_object_property
-                affected_keyframe_prop = affected_prop.split(".")[0]
-                prop_root, prop_axis = self.affected_object_property.split(".")
-                og_position = getattr(getattr(self.affected_object, prop_root), prop_axis)
-
-                set_prop(self.affected_object, self.affected_object_property, og_position)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start - 1
-                )
-
-                set_prop(self.affected_object, self.affected_object_property, og_position + self.affected_object_movement_amount)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start
-                )
-
-                set_prop(self.affected_object, self.affected_object_property, og_position)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start + duration
-                )
 
             # oscillate
             set_prop(obj, prop, base - (overshoot * 0.75))
@@ -466,7 +431,6 @@ class RoboticInstrument(Instrument):
     `pullback_axis`: what axis direction pulls back on the arm
     `note`: what pitch (numbers 1-127) controls the object, leaving this kwarg blank will result in the object moving based on all the notes in the midi file
     `channel`: what channel (numbers 0-15) controls the object, leaving this kwarg blank will result in the object moving based on all the channels in the midi file
-    `affected_object`: an object (if any) that might be affected by this instrument, where `tuple[str, str, float]` is the object's name, property, and movement amount
 
     ## Example:
 
@@ -479,7 +443,6 @@ class RoboticInstrument(Instrument):
         "z", # what axis to wind up
         note=25, # what pitch controls the object
         channel=9, # what channel controls the object
-        affected_object=("Snare", "location.z", -0.1), # what object is affected by this object
     )
     snare_drum_arm.generate_keyframes() # generate the keyframes
     ```
@@ -495,7 +458,6 @@ class RoboticInstrument(Instrument):
         return_enabled: bool = False,
         note: int | None = None,
         channel: int | None = None,
-        affected_object: tuple[str, str, float] | None = None,
     ):
         super().__init__(midi_file, note, channel)
 
@@ -507,13 +469,6 @@ class RoboticInstrument(Instrument):
 
         self._initialize_enabled = initialize_enabled
         self._return_enabled = return_enabled
-
-        if affected_object is not None:
-            self.affected_object = bpy.data.objects[affected_object[0]]
-            self.affected_object_property = affected_object[1]
-            self.affected_object_movement_amount = affected_object[2]
-
-            self.affected_object.animation_data_clear()
 
         self.control_object.animation_data_clear()
 
@@ -577,31 +532,6 @@ class RoboticInstrument(Instrument):
                 data_path="location",
                 frame=impact
             )
-
-            # the affected object moves on note hits
-            if hasattr(self, "affected_object"):
-                affected_prop = self.affected_object_property
-                affected_keyframe_prop = affected_prop.split(".")[0]
-                prop_root, prop_axis = self.affected_object_property.split(".")
-                og_position = getattr(getattr(self.affected_object, prop_root), prop_axis)
-
-                set_prop(self.affected_object, self.affected_object_property, og_position)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start - 1
-                )
-
-                set_prop(self.affected_object, self.affected_object_property, og_position + self.affected_object_movement_amount)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start
-                )
-
-                set_prop(self.affected_object, self.affected_object_property, og_position)
-                self.affected_object.keyframe_insert(
-                    data_path=affected_keyframe_prop,
-                    frame=start + duration
-                )
 
             next_event = events[i + 1] if i + 1 < len(events) else None
             current_end = start + rebound_frames
