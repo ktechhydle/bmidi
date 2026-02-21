@@ -607,7 +607,7 @@ class RoboticInstrument(Instrument):
             current_end = start + rebound_frames
             next_start = next_event["start"] * fps if next_event else None
             gap = next_start - current_end if next_event else None
-            reset_frames = (10 * (control.location - base).length / velocity) * fps # time = distance / velocity (upscaled by 10)
+            reset_frames = ((control.location - base).length / (velocity * 0.01)) * fps # time = distance / velocity (upscaled by 10)
 
             # if the arm has enough time, return to base before the next note
             if gap and gap > reset_frames:
