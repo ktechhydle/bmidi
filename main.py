@@ -84,6 +84,16 @@ class BMIDI_Item(bpy.types.PropertyGroup):
         max=127,
         default=127
     )
+    use_block_list: bpy.props.BoolProperty(
+        name="Use Block List",
+        description="Block certain notes used by a composition or controller",
+        default=False
+    )
+    blocked_notes: bpy.props.StringProperty(
+        name="Blocked Notes",
+        description="Comma separated MIDI notes",
+        default=""
+    )
     channel: bpy.props.EnumProperty(
         name="Channel",
         items=get_channel_items,
@@ -191,16 +201,16 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
             if not item.enabled:
                 continue
 
-            needs_radians = (True if item.object_property in ROTATION_PROPERTIES else False) or (item.type in ("light_instrument", "light_composition") and item.light_object_property == "data.spot_size")
+            needs_radians = (True if item.object_property in ROTATION_PROPERTIES else False) or (item.type == "light_composition" and item.light_object_property == "data.spot_size")
 
             pullback_amount = math.radians(item.pullback_amount) if needs_radians else item.pullback_amount
             overshoot_amount = math.radians(item.overshoot_amount) if needs_radians else item.overshoot_amount
-            affected_object = (
-                item.affected_object_name,
-                item.affected_object_property,
-                math.radians(item.affected_amount) if item.affected_object_property in ROTATION_PROPERTIES else item.affected_amount
-            ) if item.affects_object else None
             channel = int(item.channel) - 1
+
+            note_start = item.note_range_start
+            note_end = item.note_range_end + 1 # 0 - 128
+            blocked_notes = [int(i) for i in item.blocked_notes.strip().split(",") if item.blocked_notes]
+            notes = [i for i in range(note_start, note_end) if i not in blocked_notes]
 
             if item.type == "hammer_composition":
                 composition = HammerComposition(
@@ -208,10 +218,8 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_prefix,
                     item.object_property,
                     pullback_amount,
-                    start_range=item.note_range_start,
-                    end_range=item.note_range_end + 1, # 0 - 128
+                    notes,
                     overshoot_amount=overshoot_amount,
-                    affected_object=affected_object,
                     channel=channel,
                 )
                 composition.generate_keyframes()
@@ -221,8 +229,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.object_prefix,
                     item.object_property,
                     pullback_amount,
-                    start_range=item.note_range_start,
-                    end_range=item.note_range_end + 1, # 0 - 128
+                    notes,
                     channel=channel,
                 )
                 composition.generate_keyframes()
@@ -233,10 +240,9 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.light_object_property,
                     pullback_amount,
                     overshoot_amount,
+                    notes,
                     mode="light" if item.light_object_property != "emission.emission" else "emission",
                     fade_effect=item.light_object_fade_effect,
-                    start_range=item.note_range_start,
-                    end_range=item.note_range_end + 1, # 0 - 128
                     channel=channel,
                 )
                 composition.generate_keyframes()
@@ -247,9 +253,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.robot_target_object_name,
                     pullback_amount,
                     item.robot_pullback_axis,
-                    start_range=item.note_range_start,
-                    end_range=item.note_range_end + 1, # 0 - 128
-                    affected_object=affected_object,
+                    notes,
                     channel=channel,
                 )
                 instrument.generate_keyframes()
@@ -305,7 +309,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
 
-            layout.prop(item, "object_prefix", text="Object" if item.type != "robotic_controller" else "Control Object")
+            layout.prop(item, "object_prefix", text="Object Prefix" if item.type != "robotic_controller" else "Control Object")
 
             if item.type != "robotic_controller":
                 layout.prop(item, "object_property" if item.type not in ("light_instrument", "light_composition") else "light_object_property")
@@ -326,6 +330,10 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
             layout.prop(item, "note_range_start")
             layout.prop(item, "note_range_end")
+            layout.prop(item, "use_block_list")
+
+            if item.use_block_list:
+                layout.prop(item, "blocked_notes")
 
             layout.separator()
 

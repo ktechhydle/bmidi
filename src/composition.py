@@ -28,14 +28,13 @@ class HammerComposition(Composition):
         object_prefix: str,
         object_property: str,
         pullback_amount: float,
-        start_range: int = 0,
-        end_range: int = 127,
+        notes: list[int],
         overshoot_amount: float = 0,
         channel: int | None = None,
     ):
         self.instruments: list[HammerInstrument] = []
 
-        for i in range(start_range, end_range):
+        for i in notes:
             object_name = f"{object_prefix}{i}"
 
             try:
@@ -70,13 +69,12 @@ class MovementComposition(Composition):
         object_prefix: str,
         object_property: str,
         final_amount: float,
-        start_range: int = 0,
-        end_range: int = 127,
+        notes: list[int],
         channel: int | None = None,
     ):
         self.instruments: list[MovementInstrument] = []
 
-        for i in range(start_range, end_range):
+        for i in notes:
             object_name = f"{object_prefix}{i}"
 
             try:
@@ -111,15 +109,14 @@ class LightComposition(Composition):
         light_property: str,
         initial_amount: float,
         final_amount: float,
+        notes: list[int],
         mode: str = "light",
         fade_effect: bool = False,
-        start_range: int = 0,
-        end_range: int = 127,
         channel: int | None = None,
     ):
         self.instruments: list[LightInstrument] = []
 
-        for i in range(start_range, end_range):
+        for i in notes:
             object_name = f"{object_prefix}{i}"
 
             try:
@@ -157,8 +154,7 @@ class RoboticComposition(Composition):
         target_object_prefix: str,
         pullback_amount: float,
         pullback_axis: str,
-        start_range: int = 0,
-        end_range: int = 127,
+        notes: list[int],
         channel: int | None = None,
         affected_object: tuple[str, str, float] | None = None,
     ):
@@ -168,7 +164,7 @@ class RoboticComposition(Composition):
 
         all_events = []
 
-        for i in range(start_range, end_range):
+        for i in notes:
             target_object_name = f"{target_object_prefix}{i}"
 
             try:
