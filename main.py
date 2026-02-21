@@ -9,9 +9,11 @@ def initialize():
 
     import src.instrument
     import src.composition
+    import src.controller
 
     importlib.reload(src.instrument)
     importlib.reload(src.composition)
+    importlib.reload(src.controller)
 
 initialize()
 
@@ -50,6 +52,19 @@ LIGHT_PROPERTIES = [
     ("emission.emission", "Emissive Power", "Applies only to objects with an emissive material"),
     ("data.spot_size", "Spotlight Angle", "Applies only to spot light objects"),
 ]
+
+def process_blocked_notes(expr: str) -> list[int]:
+    notes = []
+
+    for i in expr.strip().split(","):
+        if "-" in i:
+            start, end = i.split("-")
+            notes.extend(range(int(start), int(end) + 1))
+        else:
+            notes.append(int(i))
+
+    return notes
+
 
 class BMIDI_Item(bpy.types.PropertyGroup):
     enabled: bpy.props.BoolProperty(
@@ -210,7 +225,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
             note_start = item.note_range_start
             note_end = item.note_range_end + 1 # 0 - 128
-            blocked_notes = [int(i) for i in item.blocked_notes.strip().split(",") if item.use_block_list]
+            blocked_notes = process_blocked_notes(item.blocked_notes) if item.use_block_list else []
             notes = [i for i in range(note_start, note_end) if i not in blocked_notes]
 
             if item.type == "hammer_composition":
