@@ -518,6 +518,7 @@ class RoboticInstrument(Instrument):
         self.control_object.animation_data_clear()
 
     def generate_keyframes(self):
+        events = self.events()
         fps = bpy.context.scene.render.fps
         control = self.control_object
         target = self.target_object
@@ -533,7 +534,7 @@ class RoboticInstrument(Instrument):
             )
         )
 
-        if self.events() and self._initialize_enabled:
+        if events and self._initialize_enabled:
             event = self.events()[0]
             start = (event["start"] - event["duration"]) * fps
 
@@ -543,9 +544,9 @@ class RoboticInstrument(Instrument):
                 frame=start
             )
 
-        for e in self.events():
+        for i, e in enumerate(events):
             start = e["start"] * fps
-            # pullback_scale = 1 + (1 - e["velocity"]) * 1.5
+            velocity = 1 + (1 - e["velocity"]) * 1.5
             duration = e["duration"] * fps
 
             pullback_frames = duration * 0.2
@@ -602,12 +603,26 @@ class RoboticInstrument(Instrument):
                     frame=start + duration
                 )
 
-            # return
-            control.location = target.location + offset_vec
-            control.keyframe_insert(
-                data_path="location",
-                frame=rebound_end
-            )
+            next_event = events[i + 1] if i + 1 < len(events) else None
+            current_end = start + rebound_frames
+            next_start = next_event["start"] * fps if next_event else None
+            gap = next_start - current_end if next_event else None
+            reset_frames = (10 * (control.location - base).length / velocity) * fps # time = distance / velocity (upscaled by 10)
+
+            # if the arm has enough time, return to base before the next note
+            if gap and gap > reset_frames:
+                control.location = base
+                control.keyframe_insert(
+                    data_path="location",
+                    frame=current_end + reset_frames * 0.5
+                )
+            # stationary position for next note
+            else:
+                control.location = target.location + offset_vec
+                control.keyframe_insert(
+                    data_path="location",
+                    frame=rebound_end
+                )
 
         # return to final resting position after all motion is complete
         if self.events() and self._return_enabled:
