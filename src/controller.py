@@ -95,10 +95,16 @@ class RoboticController(Controller):
         first_frame = True
 
         for i, e in enumerate(events):
+            next_event = events[i + 1] if i + 1 < len(events) else None
+
             target = bpy.data.objects[f"{target_object_prefix}{e['note']}"]
             start = e["start"] * fps
             # velocity = 1 + (1 - e["velocity"]) * 1.5
-            duration = e["duration"] * fps
+
+            if next_event:
+                duration = (next_event["start"] * fps) - start
+            else:
+                duration = e["duration"] * fps
 
             pullback_frames = duration * 0.2
             strike_frames = duration * 0.3
@@ -139,7 +145,6 @@ class RoboticController(Controller):
                 frame=impact
             )
 
-            next_event = events[i + 1] if i + 1 < len(events) else None
             rebound_end = start + rebound_frames
 
             # look ahead for the next event and animate the transition (if no next event, return to base)
