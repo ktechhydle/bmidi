@@ -92,10 +92,12 @@ class RoboticController(Controller):
             )
         )
 
+        first_frame = True
+
         for i, e in enumerate(events):
             target = bpy.data.objects[f"{target_object_prefix}{e['note']}"]
             start = e["start"] * fps
-            velocity = 1 + (1 - e["velocity"]) * 1.5
+            # velocity = 1 + (1 - e["velocity"]) * 1.5
             duration = e["duration"] * fps
 
             pullback_frames = duration * 0.2
@@ -105,6 +107,16 @@ class RoboticController(Controller):
             strike_mid = start - (strike_frames * 0.5)
             impact = start
             rebound_end = start + rebound_frames
+
+            if first_frame:
+                first_frame = False
+
+                # initial
+                control.location = base
+                control.keyframe_insert(
+                    data_path="location",
+                    frame=pullback_start - duration
+                )
 
             # move up
             control.location = control.location + offset_vec
@@ -128,22 +140,37 @@ class RoboticController(Controller):
             )
 
             next_event = events[i + 1] if i + 1 < len(events) else None
-            current_end = start + rebound_frames
-            next_start = next_event["start"] * fps if next_event else None
-            gap = next_start - current_end if next_event else None
-            reset_frames = ((control.location - base).length / (velocity * 0.01)) * fps # time = distance / velocity (upscaled by 10)
+            rebound_end = start + rebound_frames
 
-            # if the arm has enough time, return to base before the next note
-            if gap and gap > reset_frames:
-                control.location = base
-                control.keyframe_insert(
-                    data_path="location",
-                    frame=current_end + reset_frames * 0.5
-                )
-            # stationary position for next note
-            else:
+            # look ahead for the next event and animate the transition (if no next event, return to base)
+            if next_event:
+                next_target = bpy.data.objects[f"{target_object_prefix}{next_event['note']}"]
+                next_start = next_event["start"] * fps
+
+                next_hover_pos = next_target.location + offset_vec
+
                 control.location = target.location + offset_vec
                 control.keyframe_insert(
                     data_path="location",
                     frame=rebound_end
                 )
+
+                next_pullback_frames = (next_event["duration"] * fps) * 0.2
+                next_pullback_start = next_start - next_pullback_frames
+
+                control.location = next_hover_pos
+                control.keyframe_insert(
+                    data_path="location",
+                    frame=next_pullback_start
+                )
+            else:
+                # final reset
+                control.location = base
+                control.keyframe_insert(data_path="location", frame=rebound_end + (fps * 1.0))
+
+class EffectController(Controller):
+    """
+    Represents a controller for objects that are effected by notes
+
+    Targets are represented with the format `<object_prefix><note_number>`, for example, a drum head might be named `Snare25`
+    """
