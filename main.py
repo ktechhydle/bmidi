@@ -373,7 +373,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
 
             if item.type == "effect_composition":
                 layout.prop(item, "effect")
-                layout.prop(item, "axis")
+                layout.prop(item, "axis", text="Effect Axis")
 
             if item.type not in ("movement_composition", "light_composition", "effect_composition", "robotic_controller"):
                 layout.prop(item, "overshoot_amount")
