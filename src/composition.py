@@ -1,5 +1,5 @@
 import bpy
-from src.instrument import HammerInstrument, LightInstrument, MovementInstrument, RoboticInstrument
+from src.instrument import HammerInstrument, LightInstrument, MovementInstrument
 
 class Composition:
     def __init__(
@@ -139,76 +139,4 @@ class LightComposition(Composition):
 
     def generate_keyframes(self):
         for instrument in self.instruments:
-            instrument.generate_keyframes()
-
-class RoboticComposition(Composition):
-    """
-    Represents a robotic arm that will move to hit specified targets (notes)
-
-    Targets are represented with the format `<object_prefix><note_number>`, for example, a drum head might be named `Snare25`
-    """
-    def __init__(
-        self,
-        midi_file: str,
-        control_object: str,
-        target_object_prefix: str,
-        pullback_amount: float,
-        pullback_axis: str,
-        notes: list[int],
-        channel: int | None = None,
-        affected_object: tuple[str, str, float] | None = None,
-    ):
-        self.instruments: list[RoboticInstrument] = []
-        self._starting_note = None
-        self._final_note = None
-
-        all_events = []
-
-        for i in notes:
-            target_object_name = f"{target_object_prefix}{i}"
-
-            try:
-                bpy.data.objects[target_object_name]
-            except:
-                continue
-
-            instrument = RoboticInstrument(
-                midi_file,
-                control_object,
-                target_object_name,
-                pullback_amount,
-                pullback_axis,
-                note=i,
-                channel=channel,
-            )
-
-            self.instruments.append(instrument)
-
-            # collect events globally
-            for e in instrument.events():
-                e_copy = e.copy()
-                e_copy["note"] = i
-                all_events.append(e_copy)
-
-        # detect the final and starting notes globally
-        if all_events:
-            starting_event = min(
-                all_events,
-                key=lambda e: e["start"] + e.get("duration", 0)
-            )
-            final_event = max(
-                all_events,
-                key=lambda e: e["start"] + e.get("duration", 0)
-            )
-            self._starting_note = starting_event["note"]
-            self._final_note = final_event["note"]
-
-    def generate_keyframes(self):
-        for instrument in self.instruments:
-            if instrument.note == self._starting_note:
-                instrument.set_initialize_enabled(True)
-
-            if instrument.note == self._final_note:
-                instrument.set_return_enabled(True)
-
             instrument.generate_keyframes()

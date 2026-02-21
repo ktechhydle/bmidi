@@ -28,7 +28,8 @@ bl_info = {
 import bpy
 import math
 from src.instrument import get_channel_items, get_midi_channel_ranges
-from src.composition import HammerComposition, LightComposition, MovementComposition, RoboticComposition
+from src.composition import HammerComposition, LightComposition, MovementComposition
+from src.controller import RoboticController
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
 LOCATION_PROPERTIES = ("location.x", "location.y", "location.z")
@@ -209,7 +210,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
             note_start = item.note_range_start
             note_end = item.note_range_end + 1 # 0 - 128
-            blocked_notes = [int(i) for i in item.blocked_notes.strip().split(",") if item.blocked_notes]
+            blocked_notes = [int(i) for i in item.blocked_notes.strip().split(",") if item.use_block_list]
             notes = [i for i in range(note_start, note_end) if i not in blocked_notes]
 
             if item.type == "hammer_composition":
@@ -247,7 +248,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                 )
                 composition.generate_keyframes()
             elif item.type == "robotic_controller":
-                instrument = RoboticComposition(
+                instrument = RoboticController(
                     midi_file,
                     item.object_prefix,
                     item.robot_target_object_name,
