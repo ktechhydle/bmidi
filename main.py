@@ -356,7 +356,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
             layout.prop(item, "object_prefix", text="Object Prefix" if item.type != "robotic_controller" else "Control Object")
 
             if item.type not in ("robotic_controller", "effect_composition"):
-                layout.prop(item, "object_property" if item.type not in ("light_instrument", "light_composition") else "light_object_property")
+                layout.prop(item, "object_property" if item.type != "light_composition" else "light_object_property")
             elif item.type == "robotic_controller":
                 layout.prop(item, "robot_target_object_name")
                 layout.prop(item, "axis")
