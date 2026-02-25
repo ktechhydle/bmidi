@@ -31,7 +31,7 @@ import bpy
 import math
 from src.instrument import get_channel_items, get_midi_channel_ranges
 from src.composition import EffectComposition, HammerComposition, LightComposition, MovementComposition
-from src.controller import RoboticController
+from src.controller import PositionalController, RoboticController
 
 ROTATION_PROPERTIES = ("rotation_euler.x", "rotation_euler.y", "rotation_euler.z")
 LOCATION_PROPERTIES = ("location.x", "location.y", "location.z")
@@ -80,6 +80,7 @@ class BMIDI_Item(bpy.types.PropertyGroup):
             ("light_composition", "Light Composition", "A collection of light instruments that can be controlled by light power or material emissivity while a note is active"),
             ("effect_composition", "Effect Composition", "A collection of effected instruments that have real world physics effects when notes are played"),
             ("robotic_controller", "Robotic Controller", "A controller for robotic arm instruments that that swing back and \"hit\" target objects (notes)"),
+            ("position_controller", "Positional Controller", "A controller for positional instruments that move to specified note locations defined by a minimum and maximum range"),
         ]
     )
     object_prefix: bpy.props.StringProperty(name="Object Prefix")
@@ -297,7 +298,18 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     item.robot_target_object_name,
                     pullback_amount,
                     item.axis,
-                    notes,
+                    notes=notes,
+                    channel=channel,
+                )
+                instrument.generate_keyframes()
+            elif item.type == "position_controller":
+                instrument = PositionalController(
+                    midi_file,
+                    item.object_prefix,
+                    item.object_property,
+                    pullback_amount,
+                    overshoot_amount,
+                    notes=notes,
                     channel=channel,
                 )
                 instrument.generate_keyframes()
@@ -353,7 +365,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
         if scene.bmidi_items:
             item = scene.bmidi_items[scene.bmidi_active_item]
 
-            layout.prop(item, "object_prefix", text="Object Prefix" if item.type != "robotic_controller" else "Control Object")
+            layout.prop(item, "object_prefix", text="Object Prefix" if item.type not in ("robotic_controller", "position_controller") else "Control Object")
 
             if item.type not in ("robotic_controller", "effect_composition"):
                 layout.prop(item, "object_property" if item.type != "light_composition" else "light_object_property")
@@ -368,6 +380,9 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 layout.prop(item, "overshoot_amount", text="Final Factor")
             elif item.type == "effect_composition":
                 layout.prop(item, "pullback_amount", text="Effect Amount")
+            elif item.type == "position_controller":
+                layout.prop(item, "pullback_amount", text="Minimum Position")
+                layout.prop(item, "overshoot_amount", text="Maximum Position")
             else:
                 layout.prop(item, "pullback_amount")
 
@@ -375,7 +390,7 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
                 layout.prop(item, "effect")
                 layout.prop(item, "axis", text="Effect Axis")
 
-            if item.type not in ("movement_composition", "light_composition", "effect_composition", "robotic_controller"):
+            if item.type not in ("movement_composition", "light_composition", "effect_composition", "robotic_controller", "position_controller"):
                 layout.prop(item, "overshoot_amount")
 
             layout.separator()

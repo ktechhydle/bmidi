@@ -173,3 +173,80 @@ class RoboticController(Controller):
                 # final reset
                 control.location = base
                 control.keyframe_insert(data_path="location", frame=rebound_end + (fps * 1.0))
+
+class PositionalController(Controller):
+    """
+    Represents an object that will move to certain positions based on what note is being played
+
+    Targets are represented with the format `<object_prefix><note_number>`, for example, a drum head might be named `Snare25`
+    """
+    def __init__(
+        self,
+        midi_file: str,
+        object_name: str,
+        object_property: str,
+        min_position: float,
+        max_position: float,
+        notes: list[int] = [],
+        channel: int | None = None,
+    ):
+        super().__init__(midi_file, notes, channel)
+
+        self.object = bpy.data.objects[object_name]
+        self.object_property = object_property
+        self.min_position = min_position
+        self.max_position = max_position
+
+        self.object.animation_data_clear()
+
+    def generate_keyframes(self):
+        events = self.events()
+        fps = bpy.context.scene.render.fps
+        obj = self.object
+        prop = self.object_property
+        keyframe_prop = prop.split(".")[0]
+        min = self.min_position
+        max = self.max_position
+
+        first_frame = True
+
+        for i, e in enumerate(events):
+            next_event = events[i + 1] if i + 1 < len(events) else None
+            start = e["start"] * fps
+            duration = e["duration"] * fps
+            velocity_scale = 1 + (1 - e["velocity"]) * 1.5
+
+            note = e["note"]
+            position = min + (note / 127) * (max - min)
+
+            if first_frame:
+                first_frame = False
+
+                set_prop(obj, prop, min + (63.5 / 127) * (max - min))
+                obj.keyframe_insert(
+                    data_path=keyframe_prop,
+                    frame=start - (duration * velocity_scale)
+                )
+
+            if next_event:
+                set_prop(obj, prop, position)
+                obj.keyframe_insert(
+                    data_path=keyframe_prop,
+                    frame=start
+                )
+            else:
+                set_prop(obj, prop, min + (63.5 / 127) * (max - min))
+                obj.keyframe_insert(
+                    data_path=keyframe_prop,
+                    frame=start + (duration * velocity_scale)
+                )
+
+        for axis in [0, 1, 2]:
+            location_axis_curve = obj.animation_data.action.fcurve_ensure_for_datablock(
+                datablock=obj,
+                data_path=keyframe_prop,
+                index=axis
+            )
+
+            for kp in location_axis_curve.keyframe_points:
+                kp.interpolation = "CONSTANT"
