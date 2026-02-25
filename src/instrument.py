@@ -477,8 +477,7 @@ class EffectInstrument(Instrument):
         base_rotation = get_prop(obj, f"rotation_euler.{axis}")
         base_scale = get_prop(obj, f"scale.{axis}")
 
-        for i, e in enumerate(events):
-            next_event = events[i + 1] if i + 1 < len(events) else None
+        for e in events:
             start = e["start"] * fps
             duration = 0.5 * fps # ~100ms
             # velocity = 1 + (1 - e["velocity"]) * 1.5
