@@ -234,19 +234,15 @@ class PositionalController(Controller):
                     data_path=keyframe_prop,
                     frame=start
                 )
+
+                # hold position ~until next event
+                obj.keyframe_insert(
+                    data_path=keyframe_prop,
+                    frame=(next_event["start"] * fps) - (duration * 0.5)
+                )
             else:
                 set_prop(obj, prop, min + (63.5 / 127) * (max - min))
                 obj.keyframe_insert(
                     data_path=keyframe_prop,
                     frame=start + (duration * velocity_scale)
                 )
-
-        for axis in [0, 1, 2]:
-            location_axis_curve = obj.animation_data.action.fcurve_ensure_for_datablock(
-                datablock=obj,
-                data_path=keyframe_prop,
-                index=axis
-            )
-
-            for kp in location_axis_curve.keyframe_points:
-                kp.interpolation = "CONSTANT"
