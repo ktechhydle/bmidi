@@ -43,13 +43,13 @@ Create a new Blender project inside the root of this repository, and open the `m
 `bmidi`'s user interface is just a single panel with controls for frame generation.
 
 - You can add or remove items with the "+" or "-" buttons located in the top right of the panel.
-- Items can either be **instrument controllers** or **composition controllers**, depending on what you select in "Type". 
-- Instruments represent individual objects that can be controlled by an entire midi file, or a specific note in the midi file. 
-- Compositions represent a collection of instruments that map notes to object names. For example, an object named `Key_25` might be hit whenever note 25 is hit in the midi file. Compositions are great for things like xylophones, pianos, marimbas, etc. where you need to control multiple objects all at once based on notes. The format for composition objects is `<object_prefix><note_number>`.
-- All controllers have a channel selector, allowing you to select what specific channel to use from the midi file.
-- The difference between "Hammer" and "Movement" controllers is that hammer controllers generate the frames for a pull-back and release, and movement controllers generate the frames for a position movement while a note is played.
+- Items can either be **compositions** or **controllers**, depending on what you select in "Type". 
+- Compositions represent a collection of instrument(s) that map notes to object names. For example, an object named `Key_25` might be triggered whenever note 25 is played in the midi file. Given an object prefix `x` and note `y` the format for objects in compositions is `xy`
+- Controllers represent a unique individual instrument like a robotic arm.
 
-Clicking "Generate Keyframes" will set the timeline to `-1`, reset the animation data for all instrument and composition objects, then generate the frames.
+For all items, there is a `Channel` selector for selecting the specific channel that controls the objects. `Note Range Start` and `Note Range End` will allow notes between that range. Additionally, if `Use Block List` is selected, you can create a comma seperated list of notes to block from being generated (e.g. `24, 52, 60`) or a range of notes with the syntax `x-y`. 
+
+**Clicking "Generate Keyframes" will set the timeline to `-1`, reset the animation data for all composition and controller objects, then generate the frames.**
 
 ## Capabilites
 
