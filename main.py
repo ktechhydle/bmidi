@@ -53,7 +53,7 @@ LIGHT_PROPERTIES = [
     ("data.spot_size", "Spotlight Angle", "Applies only to spot light objects"),
 ]
 
-def process_blocked_notes(expr: str) -> list[int]:
+def process_note_list(expr: str) -> list[int]:
     notes = []
 
     for i in expr.strip().split(","):
@@ -243,7 +243,7 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
 
             note_start = item.note_range_start
             note_end = item.note_range_end + 1 # 0 - 128
-            blocked_notes = process_blocked_notes(item.blocked_notes) if item.use_block_list else []
+            blocked_notes = process_note_list(item.blocked_notes) if item.use_block_list else []
             notes = [i for i in range(note_start, note_end) if i not in blocked_notes]
 
             if item.type == "hammer_composition":
@@ -313,6 +313,34 @@ class VIEW_3D_OT_generate_keyframes(bpy.types.Operator):
                     channel=channel,
                 )
                 instrument.generate_keyframes()
+
+        return {'FINISHED'}
+
+class VIEW_3D_OT_rename_selected(bpy.types.Operator):
+    """
+    Renames the selected items to the criteria specified
+    """
+    bl_idname = "bmidi.rename_selected"
+    bl_label = "Rename Selected"
+
+    def execute(self, context):
+        scene = context.scene
+        prefix = scene.bmidi_rename_prefix
+        rename_type = scene.bmidi_rename_type
+        notes = process_note_list(scene.bmidi_rename_notes)
+        obj_list = bpy.context.selected_objects
+
+        if rename_type == "location_smallest":
+            obj_list.sort(key=lambda o: o.location.length)
+        elif rename_type == "location_biggest":
+            obj_list.sort(key=lambda o: o.location.length, reverse=True)
+        elif rename_type == "scale_smallest":
+            obj_list.sort(key=lambda o: (o.scale.x, o.scale.y, o.location.z))
+        elif rename_type == "scale_biggest":
+            obj_list.sort(key=lambda o: (o.scale.x, o.scale.y, o.location.z), reverse=True)
+
+        for note, obj in zip(notes, obj_list):
+            obj.name = f"{prefix}{note}"
 
         return {'FINISHED'}
 
@@ -413,10 +441,28 @@ class VIEW_3D_PT_bmidi_panel(bpy.types.Panel):
         layout.separator()
         layout.operator("bmidi.generate_keyframes", icon="MODIFIER")
 
+class VIEW_3D_PT_bmidi_rename_panel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "bmidi"
+    bl_label = "bmidi Rename™"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+
+        layout.prop(scene, "bmidi_rename_prefix")
+        layout.prop(scene, "bmidi_rename_type")
+        layout.prop(scene, "bmidi_rename_notes")
+
+        layout.separator()
+        layout.operator("bmidi.rename_selected", icon="TEXT")
+
 def register():
     bpy.utils.register_class(BMIDI_Item)
     bpy.utils.register_class(BMIDI_UL_items)
 
+    # item config
     bpy.types.Scene.bmidi_items = bpy.props.CollectionProperty(
         type=BMIDI_Item
     )
@@ -426,19 +472,41 @@ def register():
         subtype="FILE_PATH",
     )
 
+    # rename elements
+    bpy.types.Scene.bmidi_rename_prefix = bpy.props.StringProperty(
+        name="Object Prefix",
+    )
+    bpy.types.Scene.bmidi_rename_type = bpy.props.EnumProperty(
+        name="Rename Type",
+        items=[
+            ("location_smallest", "Location (Smallest -> Biggest)", "Rename items based on their location (smallest to biggest)"),
+            ("location_biggest", "Location (Biggest -> Smallest)", "Rename items based on their location (biggest to smallest)"),
+            ("scale_smallest", "Scale (Smallest -> Biggest)", "Rename items based on their scale (smallest to biggest)"),
+            ("scale_biggest", "Scale (Biggest -> Smallest)", "Rename items based on their scale (biggest to smallest)"),
+        ]
+    )
+    bpy.types.Scene.bmidi_rename_notes = bpy.props.StringProperty(
+        name="Rename To Notes",
+        description="Comma separated MIDI notes",
+    )
+
     bpy.utils.register_class(VIEW_3D_PT_bmidi_panel)
+    bpy.utils.register_class(VIEW_3D_PT_bmidi_rename_panel)
     bpy.utils.register_class(VIEW_3D_OT_add_item)
     bpy.utils.register_class(VIEW_3D_OT_remove_item)
     bpy.utils.register_class(VIEW_3D_OT_duplicate_item)
     bpy.utils.register_class(VIEW_3D_OT_generate_keyframes)
+    bpy.utils.register_class(VIEW_3D_OT_rename_selected)
 
 def unregister():
     bpy.utils.unregister_class(BMIDI_UL_items)
     bpy.utils.unregister_class(VIEW_3D_PT_bmidi_panel)
+    bpy.utils.unregister_class(VIEW_3D_PT_bmidi_rename_panel)
     bpy.utils.unregister_class(VIEW_3D_OT_add_item)
     bpy.utils.unregister_class(VIEW_3D_OT_remove_item)
     bpy.utils.unregister_class(VIEW_3D_OT_duplicate_item)
     bpy.utils.unregister_class(VIEW_3D_OT_generate_keyframes)
+    bpy.utils.unregister_class(VIEW_3D_OT_rename_selected)
 
 if __name__ == "__main__":
     register()
